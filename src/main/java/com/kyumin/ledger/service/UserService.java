@@ -5,9 +5,12 @@ import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 
 import com.kyumin.ledger.mapper.UserMapper;
+import com.kyumin.ledger.dto.LoginRequestDto;
+import com.kyumin.ledger.dto.LoginResponseDto;
 import com.kyumin.ledger.dto.SignupRequestDto;
 import com.kyumin.ledger.dto.SignupResponseDto;
 import com.kyumin.ledger.exception.DuplicateEmailException;
+import com.kyumin.ledger.exception.InvalidCredentialsException;
 import com.kyumin.ledger.domain.User;
 
 @Service
@@ -42,6 +45,27 @@ public class UserService {
     	    newUser.getUserEmail(),
     	    newUser.getUserNickname()
     	);
+    }
+    
+    public LoginResponseDto login(LoginRequestDto requestDto) {
+
+        User loginUser = userMapper.findByEmail(requestDto.getEmail());
+      	
+        if(loginUser == null) {
+        	throw new InvalidCredentialsException("이메일 또는 비밀번호가 일치하지 않습니다.");
+        }
+
+        boolean isPasswordMatch = passwordEncoder.matches(requestDto.getPassword(), loginUser.getUserPw());
+
+        if (!isPasswordMatch) {
+            throw new InvalidCredentialsException("이메일 또는 비밀번호가 일치하지 않습니다.");
+        }
+
+        return new LoginResponseDto(
+            loginUser.getUserNum(),
+            loginUser.getUserEmail(),
+            loginUser.getUserNickname()
+        );
     }
 
 }

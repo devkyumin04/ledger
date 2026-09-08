@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import lombok.RequiredArgsConstructor;
 
+import com.kyumin.ledger.dto.LoginRequestDto;
+import com.kyumin.ledger.dto.LoginResponseDto;
 import com.kyumin.ledger.dto.SignupRequestDto;
 import com.kyumin.ledger.dto.SignupResponseDto;
 import com.kyumin.ledger.service.UserService;
@@ -27,5 +29,13 @@ public class UserController {
         SignupResponseDto responseDto = userService.signup(requestDto);
 
         return ResponseEntity.status(HttpStatus.CREATED).body(responseDto);
+    }
+    
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponseDto> login(@Valid @RequestBody LoginRequestDto requestDto) {
+
+        LoginResponseDto responseDto = userService.login(requestDto);
+
+        return ResponseEntity.status(HttpStatus.OK).body(responseDto);
     }
 }
