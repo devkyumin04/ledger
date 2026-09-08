@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 
 import com.kyumin.ledger.mapper.UserMapper;
+import com.kyumin.ledger.security.JwtTokenProvider;
 import com.kyumin.ledger.dto.LoginRequestDto;
 import com.kyumin.ledger.dto.LoginResponseDto;
 import com.kyumin.ledger.dto.SignupRequestDto;
@@ -19,6 +20,7 @@ public class UserService {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final JwtTokenProvider jwtTokenProvider;
 
     public SignupResponseDto signup(SignupRequestDto requestDto) {
 
@@ -61,10 +63,13 @@ public class UserService {
             throw new InvalidCredentialsException("이메일 또는 비밀번호가 일치하지 않습니다.");
         }
 
+       String accessToken = jwtTokenProvider.createAccessToken(loginUser.getUserNum());
+        
         return new LoginResponseDto(
             loginUser.getUserNum(),
             loginUser.getUserEmail(),
-            loginUser.getUserNickname()
+            loginUser.getUserNickname(),
+            accessToken
         );
     }
 
