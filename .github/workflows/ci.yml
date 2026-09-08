@@ -43,4 +43,5 @@ jobs:
         env:
           DB_USERNAME: ledger_app
           DB_PASSWORD: ci_test_password
+          JWT_SECRET: ci_test_secret_key_for_github_actions_1234567890
         run: ./gradlew build
