@@ -72,5 +72,21 @@ public class UserService {
             accessToken
         );
     }
+    
+    public LoginResponseDto getMyInfo(Integer userNum) {
+
+        User user = userMapper.findByUserNum(userNum);
+
+        if (user == null) {
+            throw new InvalidCredentialsException("사용자를 찾을 수 없습니다.");
+        }
+
+        return new LoginResponseDto(
+            user.getUserNum(),
+            user.getUserEmail(),
+            user.getUserNickname(),
+            null
+        );
+    }
 
 }

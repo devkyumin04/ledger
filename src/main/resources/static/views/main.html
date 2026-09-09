@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>메인화면</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+    <link rel="stylesheet" href="../css/common.css">
+</head>
+<body>
+    <div class="page-container">
+        <h1 id="welcomeMessage"></h1>
+
+        <h2>메뉴</h2>
+        <a href="mypage.html">마이페이지</a>
+        <a href="personal/personal-main.html">개인가계부</a>
+        <a href="group/group-main.html">공동가계부</a>
+
+        <button id="logoutBtn">로그아웃</button>
+    </div>
+
+    <script src="../js/util/authGuard.js"></script>
+    <script src="../js/util/apiClient.js"></script>
+    <script src="../js/main.js"></script>
+</body>
+</html>

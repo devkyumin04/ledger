@@ -11,5 +11,7 @@ public interface UserMapper {
 
     // 회원가입
     void insertUser(User user);
+    
+    User findByUserNum(Integer userNum);
 
 }

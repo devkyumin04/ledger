@@ -10,8 +10,9 @@ form.addEventListener('submit', async (e) => {
 
     await withButtonLock(submitBtn, async () => {
         try {
-            const result = await apiRequest('/api/users/login', 'POST', { email, password });
-            resultMessage.textContent = '로그인 성공!';
+			const result = await apiRequest('/api/users/login', 'POST', { email, password });
+			localStorage.setItem( 'accessToken' , result.accessToken );
+			window.location.href = '../main.html';
         } catch (error) {
             resultMessage.textContent = error.message;
         }

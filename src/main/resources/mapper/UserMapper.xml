@@ -24,4 +24,8 @@
     )
 	</insert>
 	
+	<select id="findByUserNum" resultType="com.kyumin.ledger.domain.User">
+    SELECT * FROM users WHERE user_num = #{userNum}
+	</select>
+	
 </mapper>

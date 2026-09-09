@@ -27,6 +27,9 @@ input {
     display: flex;
     flex-direction: column;
     gap: 12px;
+    max-width: 400px;
+    margin: 40px auto;
+    padding: 0 16px;
 }
 
 .error-message {
@@ -37,4 +40,28 @@ input {
 .result-message {
     margin-top: 16px;
     font-weight: bold;
+}
+
+.page-container {
+    max-width: 500px;
+    margin: 40px auto;
+    padding: 0 16px;
+}
+
+a {
+    display: block;
+    text-decoration: none;
+    padding: 12px;
+    margin-bottom: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    color: black;
+}
+
+.inline-link {
+    display: inline;
+    padding: 0;
+    margin: 0;
+    border: none;
+    text-decoration: underline;
 }
