@@ -12,20 +12,22 @@
 
 	<insert id="insertUser" parameterType="com.kyumin.ledger.domain.User"
 		useGeneratedKeys="true" keyProperty="userNum">
-    INSERT INTO users (
-        user_id, user_pw, user_nickname, user_email, user_phone,
-        user_birth, user_status, login_fail_count, book_open_yn,
-        signup_ip, user_last_login_at
-    )
-    VALUES (
-        #{userId}, #{userPw}, #{userNickname}, #{userEmail}, #{userPhone},
-        #{userBirth}, #{userStatus}, #{loginFailCount}, #{bookOpenYn},
-        #{signupIp}, #{userLastLoginAt}
-    )
+    	INSERT INTO users (
+        	user_id, user_pw, user_nickname, user_email, user_phone,
+        	user_birth, user_status, login_fail_count, book_open_yn,
+        	signup_ip, user_last_login_at
+    	)
+    	VALUES (
+        	#{userId}, #{userPw}, #{userNickname}, #{userEmail}, #{userPhone},
+        	#{userBirth}, #{userStatus}, #{loginFailCount}, #{bookOpenYn},
+        	#{signupIp}, #{userLastLoginAt}
+    	)
 	</insert>
 	
 	<select id="findByUserNum" resultType="com.kyumin.ledger.domain.User">
-    SELECT * FROM users WHERE user_num = #{userNum}
+    	SELECT * 
+    	FROM users
+    	WHERE user_num = #{userNum}
 	</select>
 	
 </mapper>

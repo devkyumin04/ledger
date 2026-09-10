@@ -9,6 +9,8 @@ import lombok.RequiredArgsConstructor;
 import com.kyumin.ledger.domain.PersonalCategory;
 import com.kyumin.ledger.dto.CategoryRequestDto;
 import com.kyumin.ledger.dto.CategoryResponseDto;
+import com.kyumin.ledger.exception.CategoryNotFoundException;
+import com.kyumin.ledger.exception.InvalidCategoryAccessException;
 import com.kyumin.ledger.mapper.PersonalCategoryMapper;
 
 @Service
@@ -52,5 +54,55 @@ public class PersonalCategoryService {
 		        category.getParentCategoryNum()
 		    ))
 		    .collect(Collectors.toList());
+    }
+    
+    public CategoryResponseDto updateCategory(Integer userNum, Integer categoryNum, CategoryRequestDto requestDto) {
+    	
+        PersonalCategory category = personalCategoryMapper.findByCategoryNum(categoryNum);
+
+        if (category == null) {
+            throw new CategoryNotFoundException("존재하지 않는 카테고리입니다!");
+        }
+
+        if (!category.getUserNum().equals(userNum)) {
+            throw new InvalidCategoryAccessException("본인의 카테고리만 수정할 수 있습니다!");
+        }
+
+        // 값 채우기 (requestDto의 값으로 category 객체 업데이트)
+        category.setCategoryName(requestDto.getCategoryName());
+        category.setCategoryEmoji(requestDto.getCategoryEmoji());
+        category.setParentCategoryNum(requestDto.getParentCategoryNum());
+        
+        // Mapper로 update 호출
+        personalCategoryMapper.updateCategory(category);
+        // ResponseDto로 변환해서 반환
+        return new CategoryResponseDto(
+        	category.getCategoryNum(),
+        	category.getCategoryName(),
+        	category.getCategoryEmoji(),
+        	category.getCategoryType(),
+        	category.getParentCategoryNum()
+        );
+    }
+    
+    public void deleteCategory(Integer userNum, Integer categoryNum) {
+
+        PersonalCategory category = personalCategoryMapper.findByCategoryNum(categoryNum);
+
+        if (category == null) {
+            throw new CategoryNotFoundException("존재하지 않는 카테고리입니다!");
+        }
+
+        if (!category.getUserNum().equals(userNum)) {
+            throw new InvalidCategoryAccessException("본인의 카테고리만 수정할 수 있습니다!");
+        }
+
+        // '미분류' 카테고리는 삭제 불가 — 여기 체크 추가 필요
+        if (category.getIsDefaultYn().equals("Y")) {
+        	throw new InvalidCategoryAccessException("기본카테고리는 삭제 불가능합니다!");
+        }
+        	
+        // Mapper로 delete 호출
+        personalCategoryMapper.deleteCategory(categoryNum);
     }
 }

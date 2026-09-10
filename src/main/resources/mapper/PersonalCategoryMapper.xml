@@ -4,22 +4,48 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.kyumin.ledger.mapper.PersonalCategoryMapper">
 
+	<!-- 
+		parametertype, resulttype 결정
+		1. 들어오는게 객체이면 parameter타입, String, Integer면 parameterType명시 생략가
+		2. 반환하는게 객체, 리스트면 result타입, void면 명시 불필요
+	-->
+	
     <insert id="insertCategory" parameterType="com.kyumin.ledger.domain.PersonalCategory"
         useGeneratedKeys="true" keyProperty="categoryNum">
-	INSERT INTO personal_categories (
-		user_num, parent_category_num, category_name, category_emoji, 
-		category_type, is_default_yn, use_yn
-	)	
-	VALUES (
-		#{userNum}, #{parentCategoryNum}, #{categoryName}, #{categoryEmoji}, 
-		#{categoryType}, #{isDefaultYn}, #{useYn}
-	)
+		INSERT INTO personal_categories (
+			user_num, parent_category_num, category_name, category_emoji, 
+			category_type, is_default_yn, use_yn
+		)	
+		VALUES (
+			#{userNum}, #{parentCategoryNum}, #{categoryName}, #{categoryEmoji}, 
+			#{categoryType}, #{isDefaultYn}, #{useYn}
+		)
     </insert>
 
     <select id="findByUserNum" resultType="com.kyumin.ledger.domain.PersonalCategory">
-	SELECT *
-	FROM personal_categories
-	WHERE user_num = #{userNum} AND use_yn = 'Y'
+		SELECT *
+		FROM personal_categories
+		WHERE user_num = #{userNum} AND use_yn = 'Y'
     </select>
+	
+	<select id="findByCategoryNum" resultType="com.kyumin.ledger.domain.PersonalCategory">
+		SELECT *
+		FROM personal_categories
+		WHERE category_num = #{categoryNum} AND use_yn = 'Y'
+	</select>
+	
+	<update id="updateCategory" parameterType="com.kyumin.ledger.domain.PersonalCategory">
+	    UPDATE personal_categories
+	    SET category_name = #{categoryName},
+	        category_emoji = #{categoryEmoji},
+	        parent_category_num = #{parentCategoryNum}
+	    WHERE category_num = #{categoryNum}
+	</update>
+
+	<update id="deleteCategory">
+		UPDATE personal_categories
+		SET	use_yn = 'N'
+		WHERE category_num = #{categoryNum}
+	</update>
 
 </mapper>
