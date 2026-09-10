@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.kyumin.ledger.mapper.PersonalCategoryMapper">
+
+    <insert id="insertCategory" parameterType="com.kyumin.ledger.domain.PersonalCategory"
+        useGeneratedKeys="true" keyProperty="categoryNum">
+	INSERT INTO personal_categories (
+		user_num, parent_category_num, category_name, category_emoji, 
+		category_type, is_default_yn, use_yn
+	)	
+	VALUES (
+		#{userNum}, #{parentCategoryNum}, #{categoryName}, #{categoryEmoji}, 
+		#{categoryType}, #{isDefaultYn}, #{useYn}
+	)
+    </insert>
+
+    <select id="findByUserNum" resultType="com.kyumin.ledger.domain.PersonalCategory">
+	SELECT *
+	FROM personal_categories
+	WHERE user_num = #{userNum} AND use_yn = 'Y'
+    </select>
+
+</mapper>
