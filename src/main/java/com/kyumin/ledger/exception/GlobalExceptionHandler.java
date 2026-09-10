@@ -39,4 +39,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(e.getMessage());
     }
     
+    @ExceptionHandler(ReservedCategoryNameException.class)
+    public ResponseEntity<String> handleReservedCategoryNameException(ReservedCategoryNameException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+    
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<String> handleUnexpected(Exception e) {
+        e.printStackTrace();
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("서버 오류가 발생했습니다.");
+    }
 }

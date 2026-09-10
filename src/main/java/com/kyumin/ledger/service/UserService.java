@@ -2,8 +2,11 @@ package com.kyumin.ledger.service;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import lombok.RequiredArgsConstructor;
 
+import com.kyumin.ledger.mapper.PersonalCategoryMapper;
 import com.kyumin.ledger.mapper.UserMapper;
 import com.kyumin.ledger.security.JwtTokenProvider;
 import com.kyumin.ledger.dto.LoginRequestDto;
@@ -12,6 +15,7 @@ import com.kyumin.ledger.dto.SignupRequestDto;
 import com.kyumin.ledger.dto.SignupResponseDto;
 import com.kyumin.ledger.exception.DuplicateEmailException;
 import com.kyumin.ledger.exception.InvalidCredentialsException;
+import com.kyumin.ledger.domain.PersonalCategory;
 import com.kyumin.ledger.domain.User;
 
 @Service
@@ -21,7 +25,9 @@ public class UserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final PersonalCategoryMapper personalCategoryMapper;
 
+    @Transactional
     public SignupResponseDto signup(SignupRequestDto requestDto) {
 
         User existingUser = userMapper.findByEmail(requestDto.getEmail());
@@ -42,11 +48,27 @@ public class UserService {
         
         userMapper.insertUser(newUser);
         
+        createDefaultCategory(newUser.getUserNum(), "E");
+        createDefaultCategory(newUser.getUserNum(), "I");
+        
         return new SignupResponseDto(
     	    newUser.getUserNum(),
     	    newUser.getUserEmail(),
     	    newUser.getUserNickname()
     	);
+    }
+    
+    private void createDefaultCategory(Integer userNum, String categoryType) {
+    	
+    	PersonalCategory category = new PersonalCategory();
+        category.setUserNum(userNum);
+        category.setParentCategoryNum(null);
+        category.setCategoryName(PersonalCategory.DEFAULT_CATEGORY_NAME);
+        category.setCategoryEmoji(null);
+        category.setCategoryType(categoryType);
+        category.setIsDefaultYn("Y");
+        category.setUseYn("Y");
+        personalCategoryMapper.insertCategory(category);
     }
     
     public LoginResponseDto login(LoginRequestDto requestDto) {
