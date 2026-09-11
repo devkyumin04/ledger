@@ -18,4 +18,6 @@ public interface PersonalCategoryMapper {
     void updateCategory(PersonalCategory category);
     
     void deleteCategory(Integer categoryNum);
+
+    int countChildren(Integer categoryNum);
 }

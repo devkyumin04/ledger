@@ -85,6 +85,12 @@ public class UserService {
             throw new InvalidCredentialsException("이메일 또는 비밀번호가 일치하지 않습니다.");
         }
 
+        if ("W".equals(loginUser.getUserStatus())) {
+            throw new InvalidCredentialsException("이메일 또는 비밀번호가 일치하지 않습니다.");
+        }
+
+        userMapper.updateLastLoginAt(loginUser.getUserNum());
+
        String accessToken = jwtTokenProvider.createAccessToken(loginUser.getUserNum());
         
         return new LoginResponseDto(

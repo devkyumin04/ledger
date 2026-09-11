@@ -42,6 +42,12 @@
 	    WHERE category_num = #{categoryNum}
 	</update>
 
+	<select id="countChildren" resultType="int">
+		SELECT COUNT(*)
+		FROM personal_categories
+		WHERE parent_category_num = #{categoryNum} AND use_yn = 'Y'
+	</select>
+
 	<update id="deleteCategory">
 		UPDATE personal_categories
 		SET	use_yn = 'N'

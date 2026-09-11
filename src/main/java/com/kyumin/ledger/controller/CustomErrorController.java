@@ -16,9 +16,7 @@ public class CustomErrorController implements ErrorController {
 
         if (statusCode != null) {
             int code = Integer.parseInt(statusCode.toString());
-            if (code == HttpStatus.NOT_FOUND.value()) {
-                return new ModelAndView("forward:/error/404.html");
-            } else if (code == HttpStatus.INTERNAL_SERVER_ERROR.value()) {
+            if (code >= 500) {
                 return new ModelAndView("forward:/error/500.html");
             }
         }

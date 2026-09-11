@@ -14,4 +14,6 @@ public interface UserMapper {
     
     User findByUserNum(Integer userNum);
 
+    void updateLastLoginAt(Integer userNum);
+
 }

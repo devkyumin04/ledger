@@ -72,7 +72,7 @@ public class PersonalCategoryController {
         return ResponseEntity.status(HttpStatus.OK).body(responseDtoList);
     }
     
-    @PatchMapping("/{categoryNum}")
+    @PutMapping("/{categoryNum}")
     public ResponseEntity<CategoryResponseDto> updateCategory(
             @AuthenticationPrincipal Integer userNum,
             @PathVariable Integer categoryNum,

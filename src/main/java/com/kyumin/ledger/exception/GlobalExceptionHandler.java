@@ -44,6 +44,11 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
     }
     
+    @ExceptionHandler(InvalidCategoryHierarchyException.class)
+    public ResponseEntity<String> handleInvalidCategoryHierarchy(InvalidCategoryHierarchyException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleUnexpected(Exception e) {
         e.printStackTrace();

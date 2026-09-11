@@ -29,5 +29,11 @@
     	FROM users
     	WHERE user_num = #{userNum}
 	</select>
+
+	<update id="updateLastLoginAt">
+		UPDATE users
+		SET user_last_login_at = NOW()
+		WHERE user_num = #{userNum}
+	</update>
 	
 </mapper>
