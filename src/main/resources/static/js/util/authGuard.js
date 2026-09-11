@@ -2,7 +2,7 @@ function requireLogin() {
     const token = localStorage.getItem('accessToken');
 
     if (!token) {
-        window.location.href = 'user/login.html';
+        window.location.href = '/views/user/login.html';
     }
 
     return token;
