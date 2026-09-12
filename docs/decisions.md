@@ -215,6 +215,23 @@
 - **해제** — 로그인 시 `'D'→'A'`. 메일 인증 없이 로그인 성공 자체를 본인인증으로 봄. 로그인 잠금 구현 때
 - **전환** — 1년 미접속 → 휴면. Sprint 2 스케줄러 때
 
+### ADR-035. 예외 클래스는 도메인별로 분리
+
+- **문제** — 거래의 404/403/409에 어떤 예외를 쓸 것인가
+- **대안** — 도메인별 신규 클래스 / 공용 `NotFoundException`·`AccessDeniedException`으로 통합
+- **선택** — 도메인별. `TransactionNotFoundException`, `InvalidTransactionAccessException`, `TransactionConflictException`
+- **근거** — 기존 카테고리 예외가 이미 도메인별이라 섞으면 일관성이 깨짐. 공용으로 가려면 잘 돌아가는 카테고리 예외 4개를 리팩터링해야 해서 YAGNI 위반. 예외 클래스는 8줄이라 증가 비용이 거의 없고, 로그에 클래스명만 보고도 출처를 알 수 있음
+- **감수** — 클래스 수 증가. Sprint 4에서 공동 가계부 예외까지 늘면 공통 부모(`BusinessException`)를 두고 핸들러를 묶는 방식을 재검토
+
+### ADR-036. insert 직후 `version`은 서비스에서 0을 세팅
+
+- **문제** — INSERT 문에 `version` 컬럼이 없어 DB의 `DEFAULT 0`이 채우는데, `useGeneratedKeys`는 PK만 자바 객체로 가져오므로 도메인 객체의 `version`이 null로 남음. 그대로 응답하면 `{"version": null}`이 나가고 프론트가 등록 직후 수정할 때 `?version=null`로 깨짐
+- **대안** — 서비스에서 `setVersion(0)` / insert 후 `findByTransNum` 재조회
+- **선택** — `setVersion(0)`
+- **근거** — DDL의 `DEFAULT 0`은 우리가 직접 정의한 값이라 바뀔 일이 없음. 쿼리 한 번을 아끼고 코드도 단순
+- **감수** — DDL의 DEFAULT가 바뀌면 이 값도 같이 고쳐야 함
+- **연관** — 수정 응답도 같은 이유로 `version + 1`을 직접 담아야 함 (DB에서 올라간 값이 자바 객체에 반영되지 않음)
+
 ---
 
 ## 공동 가계부 (Sprint 4 예정)
