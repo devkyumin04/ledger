@@ -71,8 +71,10 @@
 |---|---|
 | `qa/category-parent.sh` | 카테고리 계층 검증 (12케이스) |
 | `qa/transaction-crud.sh` | 거래 CRUD (52케이스) |
+| `qa/category-transfer.sh` | 카테고리 삭제 시 거래 미분류 이관 (35체크, 부수효과 검사) |
 | `qa/reset-data.sql` | QA 데이터 정리 — USERS 와 '미분류' 는 유지 |
 | `qa/reset-all.sql` | 전체 초기화 — 유저 포함 모두 삭제 |
+| `qa/reset-all.sh` | 전체 초기화 + 테스트 계정 2개 재가입 (서버 기동 필요) |
 
 ### 실행
 
@@ -82,6 +84,7 @@
 ```
 export QA_PASSWORD='<테스트 계정 비밀번호>'
 sh qa/transaction-crud.sh
+sh qa/category-transfer.sh
 ```
 
 ### 데이터 초기화 후 주의

@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import lombok.RequiredArgsConstructor;
 
 import com.kyumin.ledger.domain.PersonalCategory;
@@ -14,12 +16,14 @@ import com.kyumin.ledger.exception.InvalidCategoryAccessException;
 import com.kyumin.ledger.exception.InvalidCategoryHierarchyException;
 import com.kyumin.ledger.exception.ReservedCategoryNameException;
 import com.kyumin.ledger.mapper.PersonalCategoryMapper;
+import com.kyumin.ledger.mapper.PersonalTransactionMapper;
 
 @Service
 @RequiredArgsConstructor
 public class PersonalCategoryService {
 
     private final PersonalCategoryMapper personalCategoryMapper;
+    private final PersonalTransactionMapper personalTransactionMapper;
 
     public CategoryResponseDto createCategory(Integer userNum, CategoryRequestDto requestDto) {
     	
@@ -120,6 +124,7 @@ public class PersonalCategoryService {
         );
     }
     
+    @Transactional
     public void deleteCategory(Integer userNum, Integer categoryNum) {
 
         PersonalCategory category = personalCategoryMapper.findByCategoryNum(categoryNum);
@@ -140,7 +145,11 @@ public class PersonalCategoryService {
         if (personalCategoryMapper.countChildren(categoryNum) > 0) {
             throw new InvalidCategoryHierarchyException("하위 카테고리를 먼저 삭제해주세요.");
         }
-        	
+        
+        //미분류 카테고리는 singup에서 항상 생성, sql로 직접 넣은 유저만 null
+        PersonalCategory defaultCategory = personalCategoryMapper.findDefaultCategory(userNum, category.getCategoryType());
+        personalTransactionMapper.moveToDefaultCategory(categoryNum, defaultCategory.getCategoryNum());
+        
         // Mapper로 delete 호출
         personalCategoryMapper.deleteCategory(categoryNum);
     }
