@@ -39,3 +39,6 @@ out/
 .env
 *.log
 .DS_Store
+
+### 로컬 전용 문서 ###
+docs/로컬환경.md
