@@ -67,9 +67,28 @@
 일회성으로 확인하고 버리면 나중에 같은 버그가 다시 생겨도 모른다.
 `qa/*.sh` 로 남겨두고 코드를 고칠 때마다 다시 돌린다.
 
-- `qa/category-parent.sh` — 카테고리 계층 검증
-- `qa/transaction-crud.sh` — 거래 CRUD
-- `qa/_debug.sh` — 토큰/응답 진단용 (케이스 아님)
+| 스크립트 | 용도 |
+|---|---|
+| `qa/category-parent.sh` | 카테고리 계층 검증 (12케이스) |
+| `qa/transaction-crud.sh` | 거래 CRUD (52케이스) |
+| `qa/reset-data.sql` | QA 데이터 정리 — USERS 와 '미분류' 는 유지 |
+| `qa/reset-all.sql` | 전체 초기화 — 유저 포함 모두 삭제 |
+
+### 실행
+
+비밀번호는 스크립트에 하드코딩하지 않고 환경변수로 주입한다.
+(`application.yml` 이 `DB_USERNAME` / `DB_PASSWORD` 를 받는 것과 같은 방식)
+
+```
+export QA_PASSWORD='<테스트 계정 비밀번호>'
+sh qa/transaction-crud.sh
+```
+
+### 데이터 초기화 후 주의
+
+`reset-all.sql` 로 유저까지 지웠다면 **반드시 회원가입 API 로** 계정을 다시 만든다.
+SQL 로 `users` 에 직접 INSERT 하면 가입 시 자동 생성되는 '미분류'(E/I) 가 없어서
+카테고리 삭제 이관이 동작하지 않는다.
 
 ---
 
