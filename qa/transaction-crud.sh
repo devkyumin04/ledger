@@ -1,23 +1,26 @@
 #!/bin/bash
 # 개인 지출/수입 CRUD QA — 정상 / 실수 / 악의적
 # 사용법: sh qa/transaction-crud.sh
-# 전제: 서버 기동, test@test.com + rollback@test.com (비번 abc1234!)
+# 전제: 서버 기동, test@test.com + rollback@test.com
+#       비밀번호는 QA_PASSWORD 환경변수로 주입 (application.yml 의 DB_PASSWORD 와 같은 방식)
+#       예) export QA_PASSWORD='비밀번호'  후 실행
 #
 # 주의: 중첩 명령치환 "$(req ... "body")" 은 macOS /bin/sh 에서 body 가 유실된다.
 #       반드시 B=... 로 본문을 변수에 담고 t() 에 넘길 것.
 
 BASE=http://localhost:8080
+QA_PASSWORD="${QA_PASSWORD:?QA_PASSWORD 환경변수가 필요합니다.  예) export QA_PASSWORD='비밀번호'}"
 PASS=0; FAIL=0; LAST=""
 
 login() {
   curl -s -X POST $BASE/api/users/login -H "Content-Type: application/json" \
-    -d "{\"email\":\"$1\",\"password\":\"abc1234!\"}" | sed 's/.*"accessToken":"\([^"]*\)".*/\1/'
+    -d "{\"email\":\"$1\",\"password\":\"$QA_PASSWORD\"}" | sed 's/.*"accessToken":"\([^"]*\)".*/\1/'
 }
 checktoken() {
   local dots=$(echo "$1" | tr -cd '.' | wc -c | tr -d ' ')
   if [ -z "$1" ] || [ "$dots" != "2" ]; then
     echo "❌ 로그인 실패 ($2)"; echo "   응답: $1"
-    echo "   → 계정이 있는지, 비번이 abc1234! 인지 확인"; exit 1
+    echo "   → 계정 존재 여부와 QA_PASSWORD 값을 확인"; exit 1
   fi
 }
 req() { # method path [body]

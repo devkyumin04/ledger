@@ -1,14 +1,17 @@
 #!/bin/bash
 # 카테고리 부모 검증 / 하위 삭제 거부 / 로그인 상태 QA
 # 사용법: sh qa/category-parent.sh
-# 전제: test@test.com, rollback@test.com 두 계정 존재 (비번 abc1234!)
+# 전제: test@test.com, rollback@test.com 두 계정 존재
+#       비밀번호는 QA_PASSWORD 환경변수로 주입
+#       예) export QA_PASSWORD='비밀번호'  후 실행
 
 BASE=http://localhost:8080
+QA_PASSWORD="${QA_PASSWORD:?QA_PASSWORD 환경변수가 필요합니다.  예) export QA_PASSWORD='비밀번호'}"
 PASS=0; FAIL=0
 
 login() {
   curl -s -X POST $BASE/api/users/login -H "Content-Type: application/json" \
-    -d "{\"email\":\"$1\",\"password\":\"abc1234!\"}" | sed 's/.*"accessToken":"\([^"]*\)".*/\1/'
+    -d "{\"email\":\"$1\",\"password\":\"$QA_PASSWORD\"}" | sed 's/.*"accessToken":"\([^"]*\)".*/\1/'
 }
 req() { # method path body -> body\ncode
   curl -s -w "\n%{http_code}" -X $1 $BASE$2 -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" ${3:+-d "$3"}
