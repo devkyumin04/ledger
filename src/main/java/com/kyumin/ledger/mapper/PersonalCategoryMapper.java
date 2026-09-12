@@ -20,4 +20,7 @@ public interface PersonalCategoryMapper {
     void deleteCategory(Integer categoryNum);
 
     int countChildren(Integer categoryNum);
+    
+    PersonalCategory findDefaultCategory(@Param("userNum") Integer userNum,
+            @Param("categoryType") String categoryType);
 }

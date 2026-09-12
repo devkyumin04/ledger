@@ -54,4 +54,13 @@
 		WHERE category_num = #{categoryNum}
 	</update>
 
+	<select id="findDefaultCategory" resultType="com.kyumin.ledger.domain.PersonalCategory">
+		SELECT *
+		FROM personal_categories
+		WHERE user_num = #{userNum}
+		AND category_type = #{categoryType}
+		AND is_default_yn = 'Y'
+		AND use_yn = 'Y'
+	</select>
+
 </mapper>
