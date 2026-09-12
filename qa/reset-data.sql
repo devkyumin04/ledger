@@ -13,6 +13,11 @@ DELETE FROM personal_transactions;
 ALTER TABLE personal_transactions AUTO_INCREMENT = 1;
 
 -- 2) 사용자 생성 카테고리만 삭제 ('미분류' 유지)
+--    자기참조 FK(FK_PCAT_PARENT) 때문에 한 문장으로 지우면 1451 이 난다.
+--    MySQL 이 행 삭제 순서를 보장하지 않아 부모가 먼저 지워지는 순간
+--    자식이 아직 그 부모를 참조하기 때문. 소분류 → 대분류 순서로 나눈다.
+--    (카테고리는 2계층 제한이라 두 번이면 충분 — ADR-019)
+DELETE FROM personal_categories WHERE is_default_yn = 'N' AND parent_category_num IS NOT NULL;
 DELETE FROM personal_categories WHERE is_default_yn = 'N';
 
 -- 3) 결과 확인
