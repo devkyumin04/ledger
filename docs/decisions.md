@@ -196,6 +196,20 @@
 - **대안** — UTC 저장 + 표시 시 변환 / 코드마다 `ZoneId` 명시 / JVM 기본값 고정
 - **선택** — JVM 기본값 고정
 - **근거** — 국내 전용 서비스이고 `TRANS_DATE`가 시각 없는 `DATE`라 UTC 변환은 오버엔지니어링. 고정하면 `@PastOrPresent`가 별도 코드 없이 정확해짐
+- **구현** — `LedgerApplication`에 `@PostConstruct` + `TimeZone.setDefault(...)`.
+  `-Duser.timezone` 플래그는 IDE·gradle·test·CI·systemd 다섯 군데에 따로 걸어야 하고
+  빠뜨려도 에러 없이 오전 9시 이전 거래만 조용히 400이 난다 (`-parameters` 와 같은 실패 구조, 트러블슈팅 1).
+  `main()` 안에서 설정하는 방법은 테스트가 `main()`을 거치지 않아 **테스트만 다른 타임존**이 되므로 탈락.
+  `spring.jackson.time-zone` 은 JSON 직렬화만 바꿔서 `LocalDate.now()`·`@PastOrPresent` 에 영향이 없음
+- **주의 — JVM 과 MySQL 은 별개** — 타임존을 읽는 주체가 둘이다.
+  `LocalDate.now()`·`@PastOrPresent` 는 JVM 이, `CREATED_AT DEFAULT CURRENT_TIMESTAMP` 는 MySQL 이 본다.
+  어긋나면 한 테이블에 "9시간 다른 두 개의 지금"이 섞인다:
+  ① `CREATED_AT` 이 밀려 `RECEIPT_ANALYSIS` 청소 스케줄러(기준이 `CREATED_AT`)가 오판
+  ② 앱이 만든 `EXPIRES_AT`(`AUTH_VERIFICATIONS` 30분)을 DB `NOW()` 와 비교하면
+     토큰이 즉시 만료되거나 9시간 넘게 살아있음 — 비번 재설정에서 바로 터짐
+  ③ 시각 없는 `DATE`(`TRANS_DATE`)는 영향이 적고, 위험한 건 시각이 있는 컬럼
+- **원칙** — 타임존은 한 값으로 정하고 **JVM · MySQL · OS 세 계층이 모두 `Asia/Seoul`**.
+  로컬 맥은 OS 가 이미 KST 라 MySQL 도 따라가 문제가 보이지 않는다. EC2 에서만 드러남 (배포 시 확인)
 
 ### ADR-027. 거래 금액 상한 1조
 
