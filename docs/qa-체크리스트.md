@@ -69,9 +69,10 @@
 
 | 스크립트 | 용도 |
 |---|---|
-| `qa/category-parent.sh` | 카테고리 계층 검증 (12케이스) |
-| `qa/transaction-crud.sh` | 거래 CRUD (52케이스) |
-| `qa/category-transfer.sh` | 카테고리 삭제 시 거래 미분류 이관 (35체크, 부수효과 검사) |
+| `qa/_lib.sh` | 공통 헬퍼 — 로그인·요청·판정·초기화 확인. 각 테스트가 첫 줄에서 불러옴 |
+| `qa/test-category-hierarchy.sh` | 카테고리 계층 검증 (12케이스) |
+| `qa/test-transaction.sh` | 거래 CRUD (52케이스) |
+| `qa/test-category-transfer.sh` | 카테고리 삭제 시 거래 미분류 이관 (35체크, 부수효과 검사) |
 | `qa/reset-data.sql` | QA 데이터 정리 — USERS 와 '미분류' 는 유지 |
 | `qa/reset-all.sql` | 전체 초기화 — 유저 포함 모두 삭제 |
 | `qa/reset-all.sh` | 전체 초기화 + 테스트 계정 2개 재가입 (서버 기동 필요) |
@@ -83,8 +84,10 @@
 
 ```
 export QA_PASSWORD='<테스트 계정 비밀번호>'
-sh qa/transaction-crud.sh
-sh qa/category-transfer.sh
+# 실행하면 "기존 거래·카테고리를 지우고 시작할까요? (y/N)" 를 먼저 묻는다
+sh qa/test-transaction.sh
+sh qa/test-category-transfer.sh
+sh qa/test-category-hierarchy.sh
 ```
 
 ### 데이터 초기화 후 주의

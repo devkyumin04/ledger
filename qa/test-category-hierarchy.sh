@@ -1,28 +1,12 @@
 #!/bin/bash
 # 카테고리 부모 검증 / 하위 삭제 거부 / 로그인 상태 QA
-# 사용법: sh qa/category-parent.sh
+# 사용법: sh qa/test-category-hierarchy.sh
 # 전제: test@test.com, rollback@test.com 두 계정 존재
 #       비밀번호는 QA_PASSWORD 환경변수로 주입
 #       예) export QA_PASSWORD='비밀번호'  후 실행
 
-BASE=http://localhost:8080
-QA_PASSWORD="${QA_PASSWORD:?QA_PASSWORD 환경변수가 필요합니다.  예) export QA_PASSWORD='비밀번호'}"
-PASS=0; FAIL=0
-
-login() {
-  curl -s -X POST $BASE/api/users/login -H "Content-Type: application/json" \
-    -d "{\"email\":\"$1\",\"password\":\"$QA_PASSWORD\"}" | sed 's/.*"accessToken":"\([^"]*\)".*/\1/'
-}
-req() { # method path body -> body\ncode
-  curl -s -w "\n%{http_code}" -X $1 $BASE$2 -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" ${3:+-d "$3"}
-}
-check() { # label expected_code response
-  local code=$(echo "$3" | tail -1)
-  local body=$(echo "$3" | sed '$d')
-  if [ "$code" = "$2" ]; then PASS=$((PASS+1)); printf "✅ %-4s %s [%s]\n" "$1" "$2" "$code"
-  else FAIL=$((FAIL+1)); printf "❌ %-4s expected %s got %s  → %s\n" "$1" "$2" "$code" "$body"; fi
-}
-num() { echo "$1" | sed '$d' | sed 's/.*"categoryNum":\([0-9]*\).*/\1/'; }
+. "$(cd "$(dirname "$0")" && pwd)/_lib.sh"
+ask_reset
 
 TOKEN=$(login test@test.com)
 [ -z "$TOKEN" ] && { echo "로그인 실패 (test@test.com)"; exit 1; }
@@ -56,6 +40,5 @@ check L 204 "$(req DELETE /api/categories/$TRANS)"
 echo "----- 정리"
 req DELETE /api/categories/$BIG > /dev/null
 
-echo "======================"
-echo "PASS: $PASS  FAIL: $FAIL"
+summary
 echo "(10번 로그인 STATUS는 DB에서 수동 확인: rollback 계정 user_last_login_at 갱신됐는지, status='W'로 바꾸고 로그인 401인지)"

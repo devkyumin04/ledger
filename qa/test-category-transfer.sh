@@ -1,6 +1,6 @@
 #!/bin/bash
 # 카테고리 삭제 시 거래 → 같은 타입 '미분류' 이관 QA (ADR-023, 진행상황 6단계)
-# 사용법: export QA_PASSWORD='비밀번호'  후  sh qa/category-transfer.sh
+# 사용법: export QA_PASSWORD='비밀번호'  후  sh qa/test-category-transfer.sh
 # 전제: 서버 기동, test@test.com + rollback@test.com (둘 다 미분류 E/I 보유)
 #
 # 이 기능은 DELETE API 자체(404/403/400)가 아니라 '부수효과'가 검사 대상이다.
@@ -9,44 +9,8 @@
 # 주의: 중첩 명령치환 "$(req ... "body")" 은 macOS /bin/sh 에서 body 가 유실된다.
 #       반드시 B=... 로 본문을 변수에 담고 t() 에 넘길 것. (트러블슈팅 8번)
 
-BASE=http://localhost:8080
-QA_PASSWORD="${QA_PASSWORD:?QA_PASSWORD 환경변수가 필요합니다.  예) export QA_PASSWORD='비밀번호'}"
-PASS=0; FAIL=0; LAST=""; LIST=""
-
-login() {
-  curl -s -X POST $BASE/api/users/login -H "Content-Type: application/json" \
-    -d "{\"email\":\"$1\",\"password\":\"$QA_PASSWORD\"}" | sed 's/.*"accessToken":"\([^"]*\)".*/\1/'
-}
-checktoken() {
-  local dots=$(echo "$1" | tr -cd '.' | wc -c | tr -d ' ')
-  if [ -z "$1" ] || [ "$dots" != "2" ]; then
-    echo "❌ 로그인 실패 ($2)"; echo "   응답: $1"
-    echo "   → 계정 존재 여부와 QA_PASSWORD 값을 확인"; exit 1
-  fi
-}
-req() { # method path [body]
-  if [ -n "$3" ]; then
-    curl -s -w "\n%{http_code}" -X "$1" "$BASE$2" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "$3"
-  else
-    curl -s -w "\n%{http_code}" -X "$1" "$BASE$2" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json"
-  fi
-}
-t() { # label expected method path [body]
-  LAST=$(req "$3" "$4" "$5")
-  local code=$(echo "$LAST" | tail -1)
-  local body=$(echo "$LAST" | sed '$d')
-  if [ "$code" = "$2" ]; then PASS=$((PASS+1)); printf "✅ %-6s %s\n" "$1" "$2"
-  else FAIL=$((FAIL+1)); printf "❌ %-6s expected %s got %s  → %s\n" "$1" "$2" "$code" "$body"; fi
-}
-has() { # label 기대문자열   — 직전 LAST 검사
-  local body=$(echo "$LAST" | sed '$d')
-  if echo "$body" | grep -q "$2"; then PASS=$((PASS+1)); printf "✅ %-6s contains %s\n" "$1" "$2"
-  else FAIL=$((FAIL+1)); printf "❌ %-6s '%s' 없음  → %s\n" "$1" "$2" "$body"; fi
-}
-jnum() { echo "$LAST" | sed '$d' | sed "s/.*\"$1\":\([0-9]*\).*/\1/"; }
-neednum() {
-  case "$1" in ''|*[!0-9]*) echo "❌ 기준 데이터 실패 ($2): $1"; exit 1;; esac
-}
+. "$(cd "$(dirname "$0")" && pwd)/_lib.sh"
+ask_reset
 
 # ── 목록 조회 + 거래 1건 검사 헬퍼 ────────────────────────────
 # 응답이 JSON 배열이라 객체를 줄 단위로 쪼갠 뒤 transNum 으로 찾는다.
@@ -194,8 +158,7 @@ rowhas 11-c "$TP" '"version":0'
 t 12 403 DELETE "/api/categories/$DEF_E"
 echo
 
-echo "═════════════════════════════"
-printf "PASS %d / FAIL %d\n" $PASS $FAIL
+summary
 echo
 echo "── 수동 확인 (9번: 삭제된 거래의 version 불변) ──"
 echo "mysql -u root -p ledger_db -e \"SELECT trans_num, category_num, version, use_yn FROM personal_transactions WHERE trans_num IN ($T9A, $T9B);\""

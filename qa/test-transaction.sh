@@ -1,6 +1,6 @@
 #!/bin/bash
 # 개인 지출/수입 CRUD QA — 정상 / 실수 / 악의적
-# 사용법: sh qa/transaction-crud.sh
+# 사용법: sh qa/test-transaction.sh
 # 전제: 서버 기동, test@test.com + rollback@test.com
 #       비밀번호는 QA_PASSWORD 환경변수로 주입 (application.yml 의 DB_PASSWORD 와 같은 방식)
 #       예) export QA_PASSWORD='비밀번호'  후 실행
@@ -8,57 +8,8 @@
 # 주의: 중첩 명령치환 "$(req ... "body")" 은 macOS /bin/sh 에서 body 가 유실된다.
 #       반드시 B=... 로 본문을 변수에 담고 t() 에 넘길 것.
 
-BASE=http://localhost:8080
-QA_PASSWORD="${QA_PASSWORD:?QA_PASSWORD 환경변수가 필요합니다.  예) export QA_PASSWORD='비밀번호'}"
-PASS=0; FAIL=0; LAST=""
-
-login() {
-  curl -s -X POST $BASE/api/users/login -H "Content-Type: application/json" \
-    -d "{\"email\":\"$1\",\"password\":\"$QA_PASSWORD\"}" | sed 's/.*"accessToken":"\([^"]*\)".*/\1/'
-}
-checktoken() {
-  local dots=$(echo "$1" | tr -cd '.' | wc -c | tr -d ' ')
-  if [ -z "$1" ] || [ "$dots" != "2" ]; then
-    echo "❌ 로그인 실패 ($2)"; echo "   응답: $1"
-    echo "   → 계정 존재 여부와 QA_PASSWORD 값을 확인"; exit 1
-  fi
-}
-req() { # method path [body]
-  if [ -n "$3" ]; then
-    curl -s -w "\n%{http_code}" -X "$1" "$BASE$2" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "$3"
-  else
-    curl -s -w "\n%{http_code}" -X "$1" "$BASE$2" -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json"
-  fi
-}
-raw() { # 토큰 없이
-  if [ -n "$3" ]; then
-    curl -s -w "\n%{http_code}" -X "$1" "$BASE$2" -H "Content-Type: application/json" -d "$3"
-  else
-    curl -s -w "\n%{http_code}" -X "$1" "$BASE$2" -H "Content-Type: application/json"
-  fi
-}
-t() { # label expected method path [body]   → 결과를 LAST 에 보관
-  LAST=$(req "$3" "$4" "$5")
-  local code=$(echo "$LAST" | tail -1)
-  local body=$(echo "$LAST" | sed '$d')
-  if [ "$code" = "$2" ]; then PASS=$((PASS+1)); printf "✅ %-5s %s\n" "$1" "$2"
-  else FAIL=$((FAIL+1)); printf "❌ %-5s expected %s got %s  → %s\n" "$1" "$2" "$code" "$body"; fi
-}
-traw() { # label expected method path [body]  — 토큰 없이
-  LAST=$(raw "$3" "$4" "$5")
-  local code=$(echo "$LAST" | tail -1)
-  if [ "$code" = "$2" ]; then PASS=$((PASS+1)); printf "✅ %-5s %s\n" "$1" "$2"
-  else FAIL=$((FAIL+1)); printf "❌ %-5s expected %s got %s\n" "$1" "$2" "$code"; fi
-}
-has() { # label 기대문자열   — 직전 LAST 검사
-  local body=$(echo "$LAST" | sed '$d')
-  if echo "$body" | grep -q "$2"; then PASS=$((PASS+1)); printf "✅ %-5s contains %s\n" "$1" "$2"
-  else FAIL=$((FAIL+1)); printf "❌ %-5s '%s' 없음  → %s\n" "$1" "$2" "$body"; fi
-}
-jnum() { echo "$LAST" | sed '$d' | sed "s/.*\"$1\":\([0-9]*\).*/\1/"; }
-neednum() {
-  case "$1" in ''|*[!0-9]*) echo "❌ 기준 데이터 실패 ($2): $1"; exit 1;; esac
-}
+. "$(cd "$(dirname "$0")" && pwd)/_lib.sh"
+ask_reset
 
 TODAY=$(date +%F)
 FUTURE=$(date -v+1d +%F 2>/dev/null || date -d "+1 day" +%F)
@@ -176,5 +127,4 @@ t 31 201 POST /api/transactions "$B"
 has 31-a '"transType":"E"'; has 31-b '"version":0'
 echo
 
-echo "═════════════════════════════"
-printf "PASS %d / FAIL %d\n" $PASS $FAIL
+summary
