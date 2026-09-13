@@ -25,8 +25,6 @@
         <button id="addBtn">+ 추가</button>
 
         <ul id="categoryList"></ul>
-
-        <p id="resultMessage" class="result-message"></p>
     </div>
 
     <!-- 모달 -->
@@ -44,6 +42,9 @@
                 </label>
                 <button type="submit" id="submitBtn">저장</button>
                 <button type="button" id="cancelBtn">취소</button>
+
+                <!-- 모달이 오버레이 위에 뜨므로 에러 메시지도 모달 안에 있어야 보인다 -->
+                <p id="resultMessage" class="result-message"></p>
             </form>
         </div>
     </div>

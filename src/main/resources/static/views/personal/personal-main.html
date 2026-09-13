@@ -4,23 +4,78 @@
     <meta charset="UTF-8">
     <title>개인 가계부</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
-    <link rel="stylesheet" href="../../css/common.css">
+    <link rel="stylesheet" href="/css/common.css">
     <script src="/js/util/theme.js"></script>
 </head>
 <body>
     <div class="page-container">
-        <a href="../main.html" class="inline-link">← 메인</a>
+        <a href="/views/main.html" class="inline-link">← 메인</a>
         <h1>개인 가계부</h1>
 
         <nav class="sub-nav">
-            <a href="personal-main.html" class="active">가계부</a>
-            <a href="category.html">카테고리</a>
+            <a href="/views/personal/personal-main.html" class="active">가계부</a>
+            <a href="/views/personal/category.html">카테고리</a>
         </nav>
 
-        <!-- 거래 목록: 지출/수입 CRUD 때 채움 -->
-        <p>아직 등록된 내역이 없습니다.</p>
+        <!-- 월 선택 -->
+        <div class="month-nav">
+            <button type="button" id="prevMonth">◀</button>
+            <span id="monthLabel"></span>
+            <button type="button" id="nextMonth">▶</button>
+        </div>
+
+        <!-- 월 합계 -->
+        <div class="summary">
+            <span>수입 <b id="sumIncome" class="amount-income">0</b></span>
+            <span>지출 <b id="sumExpense" class="amount-expense">0</b></span>
+            <span>잔액 <b id="sumBalance">0</b></span>
+        </div>
+
+        <button id="addBtn">+ 추가</button>
+
+        <p id="countList"></p>
+
+        <ul id="transactionList"></ul>
+        <p id="emptyMessage" hidden>이 달에는 내역이 없습니다.</p>
     </div>
 
-    <script src="../../js/util/authGuard.js"></script>
+    <!-- 모달 -->
+    <div id="transactionModal" class="modal-overlay" hidden>
+        <div class="modal">
+            <h2 id="modalTitle">거래 추가</h2>
+            <form id="transactionForm" class="form-container">
+                <!-- 타입은 서버로 보내지 않는다 (카테고리에서 파생 — ADR-008).
+                     여기서는 카테고리 목록을 거르기 위한 화면 전용 토글 -->
+                <div class="tabs">
+                    <button type="button" class="tab active" data-type="E">지출</button>
+                    <button type="button" class="tab" data-type="I">수입</button>
+                </div>
+
+                <label>카테고리
+                    <select id="categoryNum" required></select>
+                </label>
+                <label>금액
+                    <input type="number" id="transAmount" min="1" max="1000000000000" required>
+                </label>
+                <label>날짜
+                    <input type="date" id="transDate" required>  <!-- max 는 JS 가 오늘로 설정 -->
+                </label>
+                <label>메모
+                    <input type="text" id="transMemo" maxlength="100">
+                </label>
+
+                <button type="submit" id="submitBtn">저장</button>
+                <button type="button" id="cancelBtn">취소</button>
+
+                <!-- 모달이 오버레이 위에 뜨므로 에러 메시지도 모달 안에 있어야 보인다 -->
+                <p id="resultMessage" class="result-message"></p>
+            </form>
+        </div>
+    </div>
+
+    <script src="/js/util/authGuard.js"></script>
+    <script src="/js/util/apiClient.js"></script>
+    <script src="/js/util/buttonUtil.js"></script>
+    <script src="/js/personal/transaction.js"></script>
 </body>
 </html>

@@ -129,3 +129,42 @@ a {
 .sub-nav { display: flex; gap: 8px; margin-bottom: 16px; }
 .sub-nav a { flex: 1; text-align: center; margin: 0; }
 .sub-nav a.active { background: var(--accent); color: var(--accent-text); border-color: var(--accent); }
+
+/* ── 거래 화면 ───────────────────────────── */
+
+.month-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin: 16px 0;
+    font-size: 1.1rem;
+}
+
+.summary {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    margin-bottom: 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+}
+
+.transaction-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--border);
+    list-style: none;
+}
+
+.transaction-item .trans-date { width: 48px; opacity: .7; }
+.transaction-item .trans-category { width: 120px; }
+.transaction-item .trans-memo { flex: 1; opacity: .8; }
+.transaction-item .trans-amount { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+.amount-income { color: #2f855a; }
+.amount-expense { color: #c53030; }
