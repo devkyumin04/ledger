@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
 
 import com.kyumin.ledger.dto.CategoryStatDto;
+import com.kyumin.ledger.dto.MonthlyStatDto;
 import com.kyumin.ledger.service.PersonalStatisticsService;
 
 @RestController
@@ -47,6 +48,18 @@ public class PersonalStatisticsController {
 
 		List<CategoryStatDto> responseDtoList =
 				personalStatisticsService.getIncomeStats(userNum, year, month);
+
+		return ResponseEntity.status(HttpStatus.OK).body(responseDtoList);
+	}
+
+	@GetMapping("/monthly")
+	public ResponseEntity<List<MonthlyStatDto>> getMonthlyStats(
+			@AuthenticationPrincipal Integer userNum,
+			@RequestParam int year,
+			@RequestParam int month) {
+
+		List<MonthlyStatDto> responseDtoList =
+				personalStatisticsService.getMonthlyStats(userNum, year, month);
 
 		return ResponseEntity.status(HttpStatus.OK).body(responseDtoList);
 	}

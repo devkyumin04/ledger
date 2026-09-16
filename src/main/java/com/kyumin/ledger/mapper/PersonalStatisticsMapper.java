@@ -7,6 +7,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import com.kyumin.ledger.dto.CategoryStatRowDto;
+import com.kyumin.ledger.dto.MonthlyStatRowDto;
 
 @Mapper
 public interface PersonalStatisticsMapper {
@@ -34,6 +35,15 @@ public interface PersonalStatisticsMapper {
                                                @Param("startDate") LocalDate startDate,
                                                @Param("endDate") LocalDate endDate);
 
-    // TODO 월별 추이(최근 6개월)용 메서드는 MonthlyStatDto 를 만든 뒤에 추가한다.
-    //      같은 기간 조건에 GROUP BY 만 '월 + 타입' 으로 바뀐 형태가 될 것.
+    /**
+     * 기간 내 월별 수입·지출 합계. (최근 6개월 추이용)
+     *
+     * 반환되는 한 줄 = 한 달. 수입과 지출이 한 행에 나란히 온다.
+     * 거래가 0건인 달은 행이 나오지 않는다 → 빈 달 채우기와 balance 계산은 서비스 몫.
+     *
+     * 날짜는 [startDate, endDate) — findCategoryStats 와 같은 계약.
+     */
+    List<MonthlyStatRowDto> findMonthlyStats(@Param("userNum") Integer userNum,
+                                             @Param("startDate") LocalDate startDate,
+                                             @Param("endDate") LocalDate endDate);
 }

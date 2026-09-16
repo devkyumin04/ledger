@@ -1,13 +1,14 @@
 package com.kyumin.ledger.dto;
 
-import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Getter
-@AllArgsConstructor
-public class MonthlyStatDto {
+@Setter
+@NoArgsConstructor
+public class MonthlyStatRowDto {
 	private String yearMonth;
 	private Long totalIncome;
 	private Long totalExpense;
-	private Long balance;
 }

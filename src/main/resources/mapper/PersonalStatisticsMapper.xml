@@ -82,4 +82,19 @@
 		-->
 	</select>
 
+	<select id="findMonthlyStats" resultType="com.kyumin.ledger.dto.MonthlyStatRowDto">
+		SELECT DATE_FORMAT(trans_date, '%Y-%m') AS yearMonth,
+				SUM(CASE WHEN trans_type = 'I' THEN trans_amount ELSE 0 END) AS totalIncome,
+				SUM(CASE WHEN trans_type = 'E' THEN trans_amount ELSE 0 END) AS totalExpense
+		FROM personal_transactions
+		WHERE user_num = #{userNum}
+		AND use_yn = 'Y'
+	<![CDATA[
+		AND trans_date >= #{startDate}
+		AND trans_date < #{endDate}
+	]]>
+		GROUP BY yearMonth
+		ORDER BY yearMonth
+	</select>
+
 </mapper>

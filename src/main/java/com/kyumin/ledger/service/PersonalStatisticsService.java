@@ -3,6 +3,7 @@ package com.kyumin.ledger.service;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,6 +15,8 @@ import lombok.RequiredArgsConstructor;
 
 import com.kyumin.ledger.dto.CategoryStatDto;
 import com.kyumin.ledger.dto.CategoryStatRowDto;
+import com.kyumin.ledger.dto.MonthlyStatDto;
+import com.kyumin.ledger.dto.MonthlyStatRowDto;
 import com.kyumin.ledger.dto.SubCategoryStatDto;
 import com.kyumin.ledger.mapper.PersonalStatisticsMapper;
 
@@ -182,19 +185,39 @@ public class PersonalStatisticsService {
 		
 		return result;
 	}
-	/*
-	 * 남은 일
-	 *
-	 * 1. 봉투 완성  - parentInfoMap 을 돌면서 봉투마다
-	 *                  합계 = 자식들 금액의 합
-	 *                  자식 비율 = 자기 금액 / 봉투 합계      (부모 대비)
-	 *                  봉투 비율 = 봉투 합계 / 지출 전체 합    (전체 대비)
-	 *                분모가 0 이면 어떻게 할지 정해야 한다 (거래 없는 달)
-	 *
-	 * 2. 수입도 같은 방식으로  - getIncomeStats 또는 공통 메서드로 추출
-	 *
-	 * 3. 6개월 추이  - MonthlyStatDto + 매퍼 메서드 추가
-	 *
-	 * 4. 최상위 응답 조립  - 수입·지출 합계, 잔액, 소비율, 두 목록, 추이
-	 */
+	
+	public List<MonthlyStatDto> getMonthlyStats(Integer userNum, int year, int month){
+		YearMonth ym = YearMonth.of(year, month);
+		YearMonth startMonth = ym.minusMonths(5);
+		LocalDate startDate = startMonth.atDay(1);
+		LocalDate endDate = ym.plusMonths(1).atDay(1);
+		
+		List<MonthlyStatRowDto> monthlyRows = personalStatisticsMapper.findMonthlyStats(userNum, startDate, endDate);
+		
+		Map<String, MonthlyStatRowDto> rowMap = new LinkedHashMap<>();
+		
+		for(MonthlyStatRowDto row : monthlyRows) {
+			rowMap.put(row.getYearMonth(), row);
+		}
+		
+		List<MonthlyStatDto> result = new ArrayList<>();
+		
+		for (int i = 0; i<6 ; i++) {
+			
+			YearMonth currentMonth = startMonth.plusMonths(i);
+			String key = currentMonth.toString();
+			MonthlyStatRowDto row = rowMap.get(key);
+			
+			long income = row != null ? row.getTotalIncome() : 0;
+			long expense = row != null ? row.getTotalExpense() : 0;
+			
+			long balance = income - expense;
+		
+			result.add(new MonthlyStatDto(key, income, expense, balance));
+		}
+
+		return result;
+	}
+	
+	
 }
