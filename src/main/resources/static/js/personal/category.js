@@ -32,7 +32,7 @@ function createItem(c, isChild) {
     li.className = 'category-item' + (isChild ? ' child' : '');
     li.innerHTML = `
         <span>${c.categoryEmoji ?? '' } ${c.categoryName}</span>
-        ${c.categoryName === '미분류' ? '' : `
+        ${c.isDefault ? '' : `
         <span class="actions">
             <button data-action="edit" data-id="${c.categoryNum}">수정</button>
             <button data-action="delete" data-id="${c.categoryNum}">삭제</button>
@@ -96,12 +96,13 @@ function fillParentOptions(editingId) {
     categories
         .filter(c => c.categoryType === currentType                    // 현재 탭 타입
                   && c.parentCategoryNum === null                    // 대분류만
-                  && c.categoryName !== '미분류'                   // 미분류 제외
+                  && !c.isDefault                                   // 미분류 제외 (서버가 판단한 값)
                   && c.categoryNum !== editingId)                   // 자기 자신 제외
         .forEach(c => select.add(new Option(c.categoryName, c.categoryNum)));
 
-    const hasChildren = categories.some(c => c.parentCategoryNum === editingId);   // 부모가 editingId인 게 있나
-    select.disabled = hasChildren;
+    // 자식 있는 대분류는 부모 변경 불가 - 규칙은 서버가 판단(hasChildren), 뷰는 읽어서 잠그기만
+    const editing = categories.find(c => c.categoryNum === editingId);
+    select.disabled = editing?.hasChildren ?? false;
 }
 
 // 저장 (추가 / 수정)

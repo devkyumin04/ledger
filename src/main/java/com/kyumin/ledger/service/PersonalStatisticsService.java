@@ -86,7 +86,7 @@ public class PersonalStatisticsService {
 												.filter(row -> categoryType.equals(row.getCategoryType()))
 												.toList();
 		
-		// 지출 전체 합계. 봉투 비율의 분모가 된다.
+		// 해당 타입 전체 합계. 봉투 비율의 분모가 된다.
 		// 봉투를 다 만든 뒤에 더해도 같은 값이지만, 비율 계산이 봉투를 만드는 도중에 필요하므로
 		// 먼저 구해둔다. 모든 줄이 정확히 한 봉투에만 들어가므로 '줄 전체 합 = 봉투 합의 합' 이다.
 		long totalAmount = filteredRows.stream()

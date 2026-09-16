@@ -1,6 +1,8 @@
 package com.kyumin.ledger.service;
 
 import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
@@ -44,14 +46,21 @@ public class PersonalCategoryService {
     	newPersonalCategory.setUseYn("Y");
     	// 2. Mapper로 insert
     	personalCategoryMapper.insertCategory(newPersonalCategory);
-        // 3. CategoryResponseDto로 변환해서 반환
-    	return new CategoryResponseDto(
-    		newPersonalCategory.getCategoryNum(),
-    		newPersonalCategory.getCategoryName(),
-    		newPersonalCategory.getCategoryEmoji(),
-    		newPersonalCategory.getCategoryType(),
-    		newPersonalCategory.getParentCategoryNum()
-    	);
+        // 3. CategoryResponseDto로 변환해서 반환 (방금 만든 카테고리는 자식이 있을 수 없다)
+    	return toResponseDto(newPersonalCategory, false);
+    }
+
+    // PersonalCategory -> CategoryResponseDto 변환. 세 곳(생성/목록/수정)에서 같은 변환을 쓰므로 한 곳에 모음
+    private CategoryResponseDto toResponseDto(PersonalCategory category, boolean hasChildren) {
+        return new CategoryResponseDto(
+            category.getCategoryNum(),
+            category.getCategoryName(),
+            category.getCategoryEmoji(),
+            category.getCategoryType(),
+            category.getParentCategoryNum(),
+            "Y".equals(category.getIsDefaultYn()),
+            hasChildren
+        );
     }
     
     private void validateParent(Integer userNum, Integer parentNum, String categoryType, Integer selfNum) {
@@ -69,15 +78,15 @@ public class PersonalCategoryService {
     public List<CategoryResponseDto> getCategories(Integer userNum) {
         // 1. Mapper로 조회
     	List<PersonalCategory> categories = personalCategoryMapper.findByUserNum(userNum);
-        // 2. List<PersonalCategory>를 List<CategoryResponseDto>로 변환해서 반환
+        // 2. 누가 부모로 쓰이고 있나 - 목록 안에서 parentCategoryNum 으로 등장하는 번호를 모아둔다
+        //    (카테고리마다 countChildren 쿼리를 날리면 N+1 이라 목록 한 번으로 계산)
+        Set<Integer> parentNums = categories.stream()
+            .map(PersonalCategory::getParentCategoryNum)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toSet());
+        // 3. List<PersonalCategory>를 List<CategoryResponseDto>로 변환해서 반환
     	return categories.stream()
-		    .map(category -> new CategoryResponseDto(
-		        category.getCategoryNum(),
-		        category.getCategoryName(),
-		        category.getCategoryEmoji(),
-		        category.getCategoryType(),
-		        category.getParentCategoryNum()
-		    ))
+		    .map(category -> toResponseDto(category, parentNums.contains(category.getCategoryNum())))
 		    .collect(Collectors.toList());
     }
     
@@ -103,7 +112,8 @@ public class PersonalCategoryService {
         
         validateParent(userNum, requestDto.getParentCategoryNum(), category.getCategoryType(), categoryNum);
 
-        if (requestDto.getParentCategoryNum() != null && personalCategoryMapper.countChildren(categoryNum) > 0) {
+        boolean hasChildren = personalCategoryMapper.countChildren(categoryNum) > 0;
+        if (requestDto.getParentCategoryNum() != null && hasChildren) {
             throw new InvalidCategoryHierarchyException("하위 카테고리가 있으면 소분류로 바꿀 수 없습니다.");
         }
         
@@ -115,13 +125,7 @@ public class PersonalCategoryService {
         // Mapper로 update 호출
         personalCategoryMapper.updateCategory(category);
         // ResponseDto로 변환해서 반환
-        return new CategoryResponseDto(
-        	category.getCategoryNum(),
-        	category.getCategoryName(),
-        	category.getCategoryEmoji(),
-        	category.getCategoryType(),
-        	category.getParentCategoryNum()
-        );
+        return toResponseDto(category, hasChildren);
     }
     
     @Transactional

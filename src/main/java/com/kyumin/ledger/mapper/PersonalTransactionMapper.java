@@ -17,7 +17,7 @@ public interface PersonalTransactionMapper {
                                                      @Param("startDate") LocalDate startDate,
                                                      @Param("endDate") LocalDate endDate);
 
-    PersonalTransaction findByTransNum(Integer transNum);
+    PersonalTransaction findByTransNum(@Param("transNum") Integer transNum);
 
     int updateTransaction(PersonalTransaction transaction);
 

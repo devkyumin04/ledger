@@ -11,15 +11,15 @@ public interface PersonalCategoryMapper {
 
     void insertCategory(PersonalCategory category);
 
-    List<PersonalCategory> findByUserNum(Integer userNum);
+    List<PersonalCategory> findByUserNum(@Param("userNum") Integer userNum);
     
-    PersonalCategory findByCategoryNum(Integer categoryNum);
+    PersonalCategory findByCategoryNum(@Param("categoryNum") Integer categoryNum);
     
     void updateCategory(PersonalCategory category);
     
-    void deleteCategory(Integer categoryNum);
+    void deleteCategory(@Param("categoryNum") Integer categoryNum);
 
-    int countChildren(Integer categoryNum);
+    int countChildren(@Param("categoryNum") Integer categoryNum);
     
     PersonalCategory findDefaultCategory(@Param("userNum") Integer userNum,
             @Param("categoryType") String categoryType);

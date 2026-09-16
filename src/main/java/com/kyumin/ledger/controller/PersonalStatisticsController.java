@@ -2,6 +2,7 @@ package com.kyumin.ledger.controller;
 
 import java.util.List;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -35,7 +36,7 @@ public class PersonalStatisticsController {
 		List<CategoryStatDto> responseDtoList =
 				personalStatisticsService.getExpenseStats(userNum, year, month);
 
-		return ResponseEntity.ok(responseDtoList);
+		return ResponseEntity.status(HttpStatus.OK).body(responseDtoList);
 	}
 
 	@GetMapping("/income")
@@ -47,6 +48,6 @@ public class PersonalStatisticsController {
 		List<CategoryStatDto> responseDtoList =
 				personalStatisticsService.getIncomeStats(userNum, year, month);
 
-		return ResponseEntity.ok(responseDtoList);
+		return ResponseEntity.status(HttpStatus.OK).body(responseDtoList);
 	}
 }

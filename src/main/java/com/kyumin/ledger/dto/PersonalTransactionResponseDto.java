@@ -6,6 +6,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+// 응답 DTO지만 불변(@AllArgsConstructor)이 아닌 이유:
+// findByMonth 가 MyBatis resultType 으로 이 클래스를 직접 채운다 -> 기본생성자 + setter 필요 (ADR-038 예외)
 @Getter
 @Setter
 @NoArgsConstructor

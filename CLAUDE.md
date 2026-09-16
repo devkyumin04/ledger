@@ -41,7 +41,7 @@ AI 영수증 인식 및 지도 기반 개인·공동 가계부. 24시간 상시 
 ### MyBatis
 
 - `#{}` 바인딩만 사용. `${}` 금지 (SQL 인젝션)
-- 매퍼 파라미터가 2개 이상이면 `@Param` 필수 (`-parameters` 옵션 의존 회피)
+- 매퍼 파라미터에는 개수와 무관하게 `@Param` 필수 (`-parameters` 옵션 의존 회피 + 규칙 단일화)
 - `map-underscore-to-camel-case: true` 활성화됨
 - 반환 타입: `WHERE` 조건 때문에 0행이 나올 수 있고 그걸 구분해야 하면 `int`, 아니면 `void`
 
@@ -49,6 +49,15 @@ AI 영수증 인식 및 지도 기반 개인·공동 가계부. 24시간 상시 
 
 - DDL은 `V1__init_schema.sql` 하나로 통합 (아직 최초 적용 단계)
 - V1 최초 적용 이후 스키마 변경은 V2, V3 순서로 새 파일 추가
+
+### 계층 역할 (서버가 계산, 뷰는 표시)
+
+- **판단·규칙은 서버** — 비율, 파생값, "할 수 있다/없다"(수정 가능 여부, 예약어 여부 등)는 서버가 계산해 응답 DTO에 실어 보냄. 프론트는 그 값을 읽어 표시·잠금만 한다
+  - 예: `CategoryResponseDto.isDefault / hasChildren`. 프론트에 `'미분류'` 같은 예약어 리터럴을 두지 않는다
+- **프론트에 남기는 것** — 받은 데이터만으로 답이 하나인 표시 로직(포맷, 부호·색상, 정렬·그룹핑, 월 자리올림)
+- **화면 합계**는 통계 API 값을 쓴다 (화면마다 따로 합산하면 불일치). 거래 화면 합산은 통계 API 완성 시 교체 예정
+- **응답 DTO 애노테이션** — 서버가 만들어 채우는 응답은 `@Getter @AllArgsConstructor`(불변). MyBatis/Jackson이 채우는 것(요청 DTO, 매퍼 row DTO)은 `@Getter @Setter @NoArgsConstructor`. 응답 DTO를 MyBatis resultType 으로 직접 쓰는 경우는 후자를 쓰고 이유를 주석으로 남긴다
+- **컨트롤러 응답** — `ResponseEntity.status(HttpStatus.X).body(...)` 형태로 통일
 
 ### API
 
