@@ -12,7 +12,7 @@ form.addEventListener('submit', async (e) => {
         try {
 			const result = await apiRequest('/api/users/login', 'POST', { email, password });
 			localStorage.setItem( 'accessToken' , result.accessToken );
-			window.location.href = '../main.html';
+			window.location.href = '/views/main.html';
         } catch (error) {
             resultMessage.textContent = error.message;
         }

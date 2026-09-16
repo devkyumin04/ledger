@@ -14,7 +14,7 @@ form.addEventListener('submit', async (e) => {
             const result = await apiRequest('/api/users/signup','POST' , { email, password, nickname });
 			resultMessage.textContent = '회원가입 성공! 로그인 페이지로 이동합니다.';
 			setTimeout(() => {
-			    window.location.href = 'login.html';
+			    window.location.href = '/views/user/login.html';
 			}, 1500);
         } catch (error) {
             resultMessage.textContent = error.message;

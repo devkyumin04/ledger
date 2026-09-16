@@ -72,20 +72,11 @@ public class PersonalStatisticsService {
 	 *     (급여처럼 직접 거래가 없는 대분류는 이 목록에 안 나오므로, 부모 정보를 여기서 얻어야 한다)
 	 */
 
-	public List<CategoryStatDto> getExpenseStats(Integer userNum, int year, int month){
-		return buildCategoryStats(userNum, year, month, "E"); 
-	}
-	
-	public List<CategoryStatDto> getIncomeStats(Integer userNum, int year, int month) {
-	    return buildCategoryStats(userNum, year, month, "I"); 
-	}
-	
-	private List<CategoryStatDto> buildCategoryStats(Integer userNum, int year, int month, String categoryType) {
-		LocalDate startDate = LocalDate.of(year, month, 1);
-		LocalDate endDate = startDate.plusMonths(1);
-		
-		List<CategoryStatRowDto> categoryRows = personalStatisticsMapper.findCategoryStats(userNum, startDate, endDate);
-		
+	/*
+	 * 매퍼가 준 줄들(지출·수입 섞임)을 한 타입만 골라 봉투로 묶는다.
+	 * 조회는 밖(getStatistics)에서 한 번만 하고 여기는 받은 리스트만 다룬다 — DB 없이도 테스트할 수 있는 순수 함수.
+	 */
+	private List<CategoryStatDto> buildCategoryStats(List<CategoryStatRowDto> categoryRows, String categoryType) {
 		List<CategoryStatRowDto> filteredRows = categoryRows.stream()
 												.filter(row -> categoryType.equals(row.getCategoryType()))
 												.toList();
@@ -220,8 +211,13 @@ public class PersonalStatisticsService {
 	}
 	
 	public StatisticsResponseDto getStatistics(Integer userNum, int year, int month) {
-		List<CategoryStatDto> expenseList = getExpenseStats(userNum, year, month);
-		List<CategoryStatDto> incomeList = getIncomeStats(userNum, year, month);
+		// 카테고리 집계는 한 번만 조회하고 지출·수입으로 나눠 묶는다 (같은 표를 두 번 가져올 이유가 없다)
+		LocalDate startDate = LocalDate.of(year, month, 1);
+		LocalDate endDate = startDate.plusMonths(1);
+		List<CategoryStatRowDto> categoryRows = personalStatisticsMapper.findCategoryStats(userNum, startDate, endDate);
+
+		List<CategoryStatDto> expenseList = buildCategoryStats(categoryRows, "E");
+		List<CategoryStatDto> incomeList = buildCategoryStats(categoryRows, "I");
 		List<MonthlyStatDto> monthlyList = getMonthlyStats(userNum, year, month);
 	
 		long totalExpense = expenseList.stream().mapToLong(CategoryStatDto::getAmount).sum();

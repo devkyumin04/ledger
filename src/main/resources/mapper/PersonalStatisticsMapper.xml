@@ -15,7 +15,8 @@
 
 		2. XML 이라 '<' 를 그대로 못 쓴다 → &lt; 또는 <![CDATA[ ... ]]>
 
-		3. 소프트 딜리트 — 거래와 카테고리 양쪽 다 use_yn = 'Y' 확인
+		3. 소프트 딜리트 — 거래(t.use_yn) 만 확인한다. 카테고리는 삭제 시 거래가 미분류로 이관되므로(ADR-023)
+		   살아있는 거래가 죽은 카테고리를 가리키는 경우가 없다
 
 		4. 테이블 별칭(t, c) 명시 — 양쪽에 category_num 이 있어 모호해진다
 
@@ -44,42 +45,7 @@
 		AND t.trans_date < #{endDate}
 	]]>
 		GROUP BY c.category_num
-		ORDER BY amount desc
-		<!--
-			TODO 직접 작성
-
-			목표: 기간 내 거래를 카테고리 단위로 묶어 합계를 낸다.
-			      반환 한 줄이 CategoryStatRowDto 한 개와 맞아야 한다.
-
-			(1) SELECT 에 무엇을 담을까
-			    CategoryStatRowDto 의 필드를 보면 답이 나온다.
-			    categoryNum / categoryName / categoryEmoji / parentCategoryNum / transType / amount
-			    - 앞의 넷은 카테고리 테이블(c) 에서
-			    - transType 은 거래 테이블(t) 에서  (카테고리의 category_type 을 써도 같은 값이다.
-			      어느 쪽을 쓸지는 판단 — ADR-008 이 힌트)
-			    - amount 는 SUM(...) 이고, 별칭을 amount 로 줘야 DTO 의 amount 에 매핑된다
-			      (map-underscore-to-camel-case 는 snake_case 를 바꿔줄 뿐,
-			       SUM(t.trans_amount) 같은 식에는 별칭이 필요하다)
-
-			(2) FROM / JOIN
-			    거래를 세는 것이므로 거래가 기준. 카테고리 이름·이모지가 필요하니 조인.
-			    findByMonth 의 조인 형태를 그대로 참고하면 된다.
-
-			(3) WHERE
-			    - 사용자
-			    - 거래 소프트 딜리트
-			    - 카테고리 소프트 딜리트  ← findByMonth 에는 없다. 왜 여기선 필요한지 생각해볼 것
-			      (힌트: 이관 ADR-023 을 떠올리면 사실 필요 없을 수도 있다. 판단해서 넣거나 빼기)
-			    - 날짜 범위 (위 주의사항 1번)
-
-			(4) GROUP BY
-			    '카테고리 단위' 로 묶는다. 대분류로 합치는 것은 서비스가 하므로
-			    여기서 IFNULL(parent, self) 같은 것을 쓰지 않는다.
-			    GROUP BY 에는 SELECT 의 집계 아닌 컬럼들이 들어가야 한다.
-
-			(5) ORDER BY
-			    금액이 큰 것부터가 자연스럽다 (파이차트·목록 둘 다).
-		-->
+		ORDER BY amount DESC
 	</select>
 
 	<select id="findMonthlyStats" resultType="com.kyumin.ledger.dto.MonthlyStatRowDto">

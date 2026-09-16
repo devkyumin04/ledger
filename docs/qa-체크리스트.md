@@ -73,6 +73,7 @@
 | `qa/test-category-hierarchy.sh` | 카테고리 계층 검증 (12케이스) |
 | `qa/test-transaction.sh` | 거래 CRUD (52케이스) |
 | `qa/test-category-transfer.sh` | 카테고리 삭제 시 거래 미분류 이관 (35체크, 부수효과 검사) |
+| `qa/test-statistics.sh` | 개인 통계 최종 API (38체크 — 요약·봉투·추이 일관성, 소비율 null/반올림, month 범위 400) |
 | `qa/reset-data.sql` | QA 데이터 정리 — USERS 와 '미분류' 는 유지 |
 | `qa/reset-all.sql` | 전체 초기화 — 유저 포함 모두 삭제 |
 | `qa/reset-all.sh` | 전체 초기화 + 테스트 계정 2개 재가입 (서버 기동 필요) |
@@ -88,6 +89,7 @@ export QA_PASSWORD='<테스트 계정 비밀번호>'
 sh qa/test-transaction.sh
 sh qa/test-category-transfer.sh
 sh qa/test-category-hierarchy.sh
+sh qa/test-statistics.sh
 ```
 
 ### 데이터 초기화 후 주의

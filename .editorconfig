@@ -1,0 +1,33 @@
+# 들여쓰기 규칙 — 사람이 아니라 에디터가 지킨다.
+# 탭인 이유: STS(Eclipse) 기본값이고 직접 작성한 파일 29개가 전부 탭. 위임받은 코드가 스페이스로 오는 걸 여기서 막는다.
+# 기존 스페이스 파일 16개는 Sprint 1 전체 리뷰 때 포매터로 한 커밋에 일괄 (기능 커밋에 섞지 않는다).
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.java]
+indent_style = tab
+indent_size = 4
+
+[*.xml]
+indent_style = tab
+indent_size = 4
+
+[*.{js,html,css}]
+indent_style = space
+indent_size = 4
+
+[*.{yml,yaml}]
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.sh]
+indent_style = space
+indent_size = 2

@@ -10,7 +10,7 @@
 #   · 빈 목록은 [] 로 나가는가 (지출만 있는 달의 incomeList 등)
 #   · month 범위 검증 400 (@Min/@Max + HandlerMethodValidationException 핸들러)
 #
-# 데이터는 test-statistics-monthly.sh 와 같은 2020 년 세트 + 2021-03 반올림·소분류 세트.
+# 데이터는 2020 년 세트(옛 test-statistics-monthly.sh 의 것을 흡수) + 2021-03 반올림·소분류 세트.
 # 시작 전 해당 기간이 비어 있는지 먼저 확인한다 (초기화 y 권장).
 #
 #   2020-07  수입 3,000,000 / 지출 12,000          → 소비율 0.4
@@ -86,6 +86,8 @@ has 1-c "\"categoryNum\":$CAT_I,\"categoryName\":\"QA통계수입\",\"categoryEm
 eq  1-d "2020-07 2020-08 2020-09 2020-10 2020-11 2020-12" "$(months)"   # 추이 6개
 has 1-e "$(row 2020-12 500 1000 -500)"                          # 추이 마지막 = 요약과 같은 값 (일관성)
 has 1-f "$(row 2020-11 0 0 0)"                                  # 삭제 거래 제외
+has 1-g "$(row 2020-07 3000000 12000 2988000)"                  # 시작 경계 포함 + 6/30 제외
+has 1-h "$(row 2020-09 0 0 0)"                                  # 빈 달 채움
 echo
 
 echo "───── 경계: 수입 0 (2020-08) — 소비율 null, 수입 목록 빈 배열"
@@ -116,6 +118,8 @@ has 5-d "\"categoryNum\":$CAT_E,\"categoryName\":\"QA통계지출\",\"categoryEm
 has 5-e "\"categoryNum\":$CAT_E,\"categoryName\":\"QA통계지출\",\"categoryEmoji\":null,\"amount\":1500,\"ratio\":75.0"    # 직접 거래 줄 (부모 대비)
 has 5-f "\"categoryNum\":$CAT_SUB,\"categoryName\":\"QA통계소분류\",\"categoryEmoji\":null,\"amount\":500,\"ratio\":25.0"
 eq  5-g "2020-10 2020-11 2020-12 2021-01 2021-02 2021-03" "$(months)"   # 연도 넘김
+has 5-h "$(row 2021-01 0 2000 -2000)"                           # 12월 조회 땐 제외됐던 1/1 이 여기선 포함
+has 5-i "$(row 2021-02 0 0 0)"
 echo
 
 echo "───── 실수: month 범위 (A안 — @Min/@Max → 400)"

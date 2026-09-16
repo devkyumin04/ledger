@@ -7,6 +7,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import lombok.RequiredArgsConstructor;
 
 import com.kyumin.ledger.dto.PersonalTransactionRequestDto;
@@ -63,7 +65,8 @@ public class PersonalTransactionController {
 	 *    @RequestParam int month     ← ?month=9
 	 *
 	 *    @RequestParam 은 기본이 required=true 라서
-	 *    빠뜨리면 스프링이 알아서 400 을 낸다. 별도 검증 불필요.
+	 *    빠뜨리면 스프링이 알아서 400 을 낸다.
+	 *    month 는 @Min/@Max 로 1~12 입구 검증 (통계 API 와 같은 구조. 없으면 LocalDate.of 가 500)
 	 *
 	 *  반환 타입은 List 라서 제네릭에 List<...> 를 그대로 넣는다
 	 *
@@ -73,7 +76,7 @@ public class PersonalTransactionController {
 	public ResponseEntity<List<PersonalTransactionResponseDto>> getTransactions(
 		@AuthenticationPrincipal Integer userNum, 
 		@RequestParam int year, 
-		@RequestParam int month
+		@RequestParam @Min(1) @Max(12) int month
 	){
 		List<PersonalTransactionResponseDto> responseDtoList = personalTransactionService.getTransactions(userNum, year, month);
 		return ResponseEntity.status(HttpStatus.OK).body(responseDtoList);

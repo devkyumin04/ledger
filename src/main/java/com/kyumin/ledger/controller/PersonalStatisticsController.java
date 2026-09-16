@@ -1,21 +1,19 @@
 package com.kyumin.ledger.controller;
 
-import java.util.List;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import lombok.RequiredArgsConstructor;
-
-import com.kyumin.ledger.dto.CategoryStatDto;
-import com.kyumin.ledger.dto.MonthlyStatDto;
 import com.kyumin.ledger.dto.StatisticsResponseDto;
 import com.kyumin.ledger.service.PersonalStatisticsService;
 
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/statistics")
@@ -23,51 +21,13 @@ import jakarta.validation.constraints.Min;
 public class PersonalStatisticsController {
 
 	/*
-	 * 임시 컨트롤러.
-	 * 봉투 묶기 로직이 맞는지 눈으로 확인하려고 만든 것이다.
-	 * 최종 API 는 GET /api/statistics?year=&month= 하나로 합친다
-	 * (수입 목록, 6개월 추이, 소비율까지 한 응답에).
-	 * 그때 이 /expense 는 지우거나 남겨둘지 판단할 것.
+	 * 개인 통계 API 는 하나. GET /api/statistics?year=&month=
+	 * 요약(수입합·지출합·잔액·소비율) + 지출 봉투 목록 + 수입 봉투 목록 + 6개월 추이를 한 응답에 담는다.
+	 * 계산은 전부 서비스에서, 여기는 HTTP 입구 검증(month 1~12)과 응답 포장만.
 	 */
 
 	private final PersonalStatisticsService personalStatisticsService;
 
-	@GetMapping("/expense")
-	public ResponseEntity<List<CategoryStatDto>> getExpenseStats(
-			@AuthenticationPrincipal Integer userNum,
-			@RequestParam int year,
-			@RequestParam int month) {
-
-		List<CategoryStatDto> responseDtoList =
-				personalStatisticsService.getExpenseStats(userNum, year, month);
-
-		return ResponseEntity.status(HttpStatus.OK).body(responseDtoList);
-	}
-
-	@GetMapping("/income")
-	public ResponseEntity<List<CategoryStatDto>> getIncomeStats(
-			@AuthenticationPrincipal Integer userNum,
-			@RequestParam int year,
-			@RequestParam int month) {
-
-		List<CategoryStatDto> responseDtoList =
-				personalStatisticsService.getIncomeStats(userNum, year, month);
-
-		return ResponseEntity.status(HttpStatus.OK).body(responseDtoList);
-	}
-
-	@GetMapping("/monthly")
-	public ResponseEntity<List<MonthlyStatDto>> getMonthlyStats(
-			@AuthenticationPrincipal Integer userNum,
-			@RequestParam int year,
-			@RequestParam int month) {
-
-		List<MonthlyStatDto> responseDtoList =
-				personalStatisticsService.getMonthlyStats(userNum, year, month);
-
-		return ResponseEntity.status(HttpStatus.OK).body(responseDtoList);
-	}
-	
 	@GetMapping
 	public ResponseEntity<StatisticsResponseDto> getStatistics(
 			@AuthenticationPrincipal Integer userNum,
