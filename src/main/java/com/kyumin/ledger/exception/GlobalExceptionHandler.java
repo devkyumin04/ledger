@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestController;
@@ -77,6 +78,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleMissingParam(MissingServletRequestParameterException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body("필수 요청 값이 누락되었습니다: " + e.getParameterName());
+    }
+
+    // @RequestParam 에 건 @Min/@Max 위반 (Spring 6.1+ 내장 메서드 검증. 컨트롤러에 @Validated 없어야 이 예외로 온다)
+    @ExceptionHandler(HandlerMethodValidationException.class)
+    public ResponseEntity<String> handleMethodValidation(HandlerMethodValidationException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("요청 값이 허용 범위를 벗어났습니다.");
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)

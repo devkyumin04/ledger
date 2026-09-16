@@ -11,7 +11,11 @@ import lombok.RequiredArgsConstructor;
 
 import com.kyumin.ledger.dto.CategoryStatDto;
 import com.kyumin.ledger.dto.MonthlyStatDto;
+import com.kyumin.ledger.dto.StatisticsResponseDto;
 import com.kyumin.ledger.service.PersonalStatisticsService;
+
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 
 @RestController
 @RequestMapping("/api/statistics")
@@ -62,5 +66,17 @@ public class PersonalStatisticsController {
 				personalStatisticsService.getMonthlyStats(userNum, year, month);
 
 		return ResponseEntity.status(HttpStatus.OK).body(responseDtoList);
+	}
+	
+	@GetMapping
+	public ResponseEntity<StatisticsResponseDto> getStatistics(
+			@AuthenticationPrincipal Integer userNum,
+			@RequestParam int year,
+			@RequestParam @Min(1) @Max(12) int month) {
+
+		StatisticsResponseDto responseDto =
+				personalStatisticsService.getStatistics(userNum, year, month);
+
+		return ResponseEntity.status(HttpStatus.OK).body(responseDto);
 	}
 }

@@ -17,6 +17,7 @@ import com.kyumin.ledger.dto.CategoryStatDto;
 import com.kyumin.ledger.dto.CategoryStatRowDto;
 import com.kyumin.ledger.dto.MonthlyStatDto;
 import com.kyumin.ledger.dto.MonthlyStatRowDto;
+import com.kyumin.ledger.dto.StatisticsResponseDto;
 import com.kyumin.ledger.dto.SubCategoryStatDto;
 import com.kyumin.ledger.mapper.PersonalStatisticsMapper;
 
@@ -210,7 +211,6 @@ public class PersonalStatisticsService {
 			
 			long income = row != null ? row.getTotalIncome() : 0;
 			long expense = row != null ? row.getTotalExpense() : 0;
-			
 			long balance = income - expense;
 		
 			result.add(new MonthlyStatDto(key, income, expense, balance));
@@ -219,5 +219,30 @@ public class PersonalStatisticsService {
 		return result;
 	}
 	
+	public StatisticsResponseDto getStatistics(Integer userNum, int year, int month) {
+		List<CategoryStatDto> expenseList = getExpenseStats(userNum, year, month);
+		List<CategoryStatDto> incomeList = getIncomeStats(userNum, year, month);
+		List<MonthlyStatDto> monthlyList = getMonthlyStats(userNum, year, month);
+	
+		long totalExpense = expenseList.stream().mapToLong(CategoryStatDto::getAmount).sum();
+		long totalIncome  = incomeList.stream().mapToLong(CategoryStatDto::getAmount).sum();
+		long balance = totalIncome - totalExpense;
+		
+		BigDecimal expenseRatio;
+		if (totalIncome == 0) {
+			// 봉투 비율과 달리 여기는 방어가 필요하다.
+			// 봉투는 분모(totalAmount)가 0 이면 줄이 없어 나눗셈에 도달하지 않지만,
+			// 소비율은 수입이 0 이어도 지출은 있을 수 있어 나눗셈이 무조건 실행된다.
+			// 0 을 보내면 "지출이 없다" 는 거짓이 되므로 "계산 불가" 를 null 로 내려보낸다.
+			// 프론트는 null 이면 '-' 로 표시한다 (판단은 서버, 표시는 뷰 - ADR-038).
+		    expenseRatio = null;
+		} else {
+		    expenseRatio = BigDecimal.valueOf(totalExpense)
+		            .multiply(BigDecimal.valueOf(100))
+		            .divide(BigDecimal.valueOf(totalIncome), 1, RoundingMode.HALF_UP);
+		}
+		
+		return new StatisticsResponseDto(totalIncome, totalExpense, balance, expenseRatio, expenseList, incomeList, monthlyList);
+	}
 	
 }
