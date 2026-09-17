@@ -22,7 +22,7 @@ public class PersonalStatisticsController {
 
 	/*
 	 * 개인 통계 API 는 하나. GET /api/statistics?year=&month=
-	 * 요약(수입합·지출합·잔액·소비율) + 지출 봉투 목록 + 수입 봉투 목록 + 6개월 추이를 한 응답에 담는다.
+	 * 요약(수입합·지출합·잔액·수입 대비 지출) + 지출 봉투 목록 + 수입 봉투 목록 + 6개월 추이를 한 응답에 담는다.
 	 * 계산은 전부 서비스에서, 여기는 HTTP 입구 검증(month 1~12)과 응답 포장만.
 	 */
 

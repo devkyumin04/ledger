@@ -9,7 +9,7 @@
     --accent-text: #fff;
     --error: #d33;
     --overlay: rgba(0,0,0,.4);
-    --income: #2f855a;
+    --income: #276749;     /* #2f855a 는 --surface 위 3.9:1 → 5.8:1 */
     --expense: #c53030;
 }
 

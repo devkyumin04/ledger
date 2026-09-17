@@ -10,8 +10,8 @@ const resultMessage = document.getElementById('resultMessage');
 
 async function loadCategories() {
     const data = await apiRequest('/api/categories', 'GET');
-	if(!data) return;
-	categories = data;
+    if(!data) return;
+    categories = data;
     render();
 }
 
