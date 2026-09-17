@@ -23,6 +23,8 @@
     --accent-text: #111;
     --error: #ff6b6b;
     --overlay: rgba(0,0,0,.6);
+    --income: #48bb78;     /* 라이트 값은 --surface 위 대비 2.6~3.2:1 이라 다크에서 안 읽힘 → 5.9:1 */
+    --expense: #fc8181;
 }
 
 body {

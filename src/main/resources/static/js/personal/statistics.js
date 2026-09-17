@@ -36,6 +36,8 @@ function renderEnvelopes(listId, emptyId, list) {
 }
 
 // 대분류 한 줄. 소분류가 있으면 <details> 로 감싸 클릭하면 펼쳐진다 (JS 토글 불필요)
+// 서버는 대분류 직접 거래도 children 에 자기 자신(같은 categoryNum)으로 넣는다 → children 은 비지 않는다.
+// 그래서 "소분류가 있는가" 는 길이가 아니라 자기 자신이 아닌 줄이 있는지로 본다
 function createEnvelope(p) {
     const row = `
         <span class="stat-name">${escapeHtml(p.categoryEmoji ?? '')} ${escapeHtml(p.categoryName)}</span>
@@ -43,7 +45,7 @@ function createEnvelope(p) {
         <span class="stat-amount">${won(p.amount)}</span>
     `;
 
-    if (p.children.length === 0) {
+    if (!p.children.some(c => c.categoryNum !== p.categoryNum)) {
         const div = document.createElement('div');
         div.className = 'stat-item';
         div.innerHTML = row;
