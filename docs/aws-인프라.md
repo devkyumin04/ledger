@@ -4,7 +4,7 @@ AWS 콘솔에서 **무엇을 어떤 값으로 만들었고 왜 그랬는지**. �
 실무는 이런 자원을 코드(Terraform·CDK)로 만들어 PR 로 리뷰한다 — 한 대짜리 개인 프로젝트라 콘솔 + 이 문서로 대신한다.
 "왜"의 정본은 ADR-002 보완 · ADR-042, 단계 진행은 진행상황.md "1차 배포". 이 문서는 **지금 AWS 에 무엇이 있는가 + 자주 하는 조작**.
 
-> **값은 적지 않는다** (CLAUDE.md "비밀값 · 개인정보"). IP·키 파일 위치·계정 정보는 `docs/로컬환경.md`(gitignore)에. 여기엔 `<EC2_HOST>` 처럼 이름만.
+> **값은 적지 않는다** (CLAUDE.md "비밀값 · 개인정보"). IP·pem 위치·DB 비밀번호 같은 값은 **저장소 밖 개인 보관처**에. 여기엔 `<EC2_HOST>` 처럼 이름만.
 
 ---
 
@@ -20,6 +20,8 @@ AWS 콘솔에서 **무엇을 어떤 값으로 만들었고 왜 그랬는지**. �
 | 키 페어 | `ledger-admin` (ED25519, `.pem`) | 내 접속용. 다운로드는 생성 시 1회뿐 — 잃어버리면 재발급 불가. CD 용 키는 3단계에서 따로 만든다 |
 | 보안 그룹 | `launch-wizard-1` | 인바운드 22 = **내 IP 만** / 80 · 443 = 전체. 8080 · 3306 은 열지 않음 |
 | 탄력적 IP | 1개, `ledger-prod` 에 연결 | 재시작해도 IP 고정. **인스턴스 없이 혼자 남으면 그것대로 과금** — 인스턴스를 지울 땐 같이 릴리스 |
+| MySQL | **8.4.11** (우분투 패키지, 2026-09-17 설치) | `ledger_db` + 앱 계정 `ledger_app`@`localhost`. root 는 `auth_socket`(비번 없음, 소켓 인증). 3306 은 `127.0.0.1` 바인딩 |
+| OS 타임존 | `Asia/Seoul` | MySQL 설치 **전에** 바꿨다. MySQL `time_zone=SYSTEM` 이 OS 를 따라가므로 순서가 중요 (ADR-026) |
 | 예산 알림 | `ledger-monthly` 월 $30 | 실제 85% · 100% 도달, 예상 100% 도달 시 메일. **알림만 — 과금을 멈추지는 않는다** |
 
 아직 없는 것 — 도메인, HTTPS 인증서, S3 버킷, IAM 역할, SES. 각각 진행상황.md 5단계 · Sprint 2 에서.
@@ -76,6 +78,24 @@ ssh -i <PEM_PATH> ubuntu@<EC2_HOST>
 | `Permission denied (publickey)` | 계정 · 키 경로 오타 | 계정은 `ubuntu`, `-i` 경로 확인 |
 | `REMOTE HOST IDENTIFICATION HAS CHANGED` | 인스턴스를 새로 만들어 같은 IP 에 다른 서버 | `ssh-keygen -R <EC2_HOST>` 후 재접속 |
 
+### MySQL 접속 · 확인
+
+```
+sudo mysql                      # root, 비번 없이 (auth_socket — sudo 가 곧 인증)
+mysql -u ledger_app -p ledger_db   # 앱 계정으로
+```
+
+| 확인할 것 | 명령 | 기대 |
+|---|---|---|
+| 타임존 | `SELECT @@global.time_zone, NOW();` | `SYSTEM` + 한국 시각 |
+| 앱 계정 권한 | `SHOW GRANTS FOR 'ledger_app'@'localhost';` | `USAGE ON *.*` + `ALL PRIVILEGES ON ledger_db.*` 두 줄만 |
+| collation | `SHOW CREATE DATABASE ledger_db;` | `utf8mb4_0900_ai_ci` (맥·CI 와 같은 값, ADR-044) |
+| 테이블 | `USE ledger_db; SHOW TABLES;` | 첫 배포 전엔 비어 있음. Flyway V1 이 18개를 만든다 |
+| 메모리 | `free -h` | available 300Mi 아래면 스왑 검토 |
+
+- 앱 계정 비밀번호는 해시로만 저장돼 **다시 꺼내볼 수 없다.** 잃어버리면 `ALTER USER 'ledger_app'@'localhost' IDENTIFIED BY '새 값';` 로 재설정하고 systemd `EnvironmentFile` 도 같이 고친다
+- root 비번을 만들지 않은 이유는 ADR-043
+
 ### 인스턴스 유형 변경 (small ↔ medium)
 
 1. 인스턴스 선택 → 인스턴스 상태 → **인스턴스 중지** ("종료(삭제)" 가 아님 — 종료는 디스크까지 지운다)
@@ -96,7 +116,7 @@ ssh -i <PEM_PATH> ubuntu@<EC2_HOST>
 ## 키 파일 보관
 
 - `.pem` 은 **iCloud·드롭박스로 동기화되는 폴더를 피한다** (맥의 "데스크탑 및 문서 폴더" 동기화가 켜져 있으면 `~/Documents` 도 올라간다). 표준 위치는 `~/.ssh/`, 권한 `400`
-- 저장소 폴더 안에 두지 않는다. 실제 위치는 `docs/로컬환경.md` 에만
+- 저장소 폴더 안에 두지 않는다. 실제 위치는 저장소 밖 개인 보관처에만 적어 둔다
 - 첫 접속 때 나오는 `ED25519 key fingerprint ... (yes/no)` 는 "이 서버를 처음 본다"는 확인. `yes` 하면 `~/.ssh/known_hosts` 에 기록되고 다음부터 안 묻는다
 
 ## 계정 보안
@@ -122,3 +142,5 @@ ssh -i <PEM_PATH> ubuntu@<EC2_HOST>
 | 2026-09-17 | 예산 알림 `ledger-monthly` $30 | AI 가 콘솔 조작 |
 | 2026-09-17 | pem 권한 설정 · SSH 첫 접속 확인 | 직접 |
 | 2026-09-17 | 루트 MFA — 폰 OTP(Google Authenticator). 패스키(Touch ID)로 등록했다가 제거 | 직접 |
+| 2026-09-17 | OS 타임존 KST → `apt upgrade`(169개) → 커널 재부팅 → MySQL 8.4.11 설치 → `mysql_secure_installation` | 직접 |
+| 2026-09-17 | `ledger_db` 생성 · 앱 계정 `ledger_app` 생성 · `ledger_db.*` 권한 부여 (ADR-043 · ADR-044) | 직접 |
