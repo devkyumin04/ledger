@@ -13,6 +13,7 @@ AI 영수증 인식 및 지도 기반 개인·공동 가계부. 24시간 상시 
 | [진행 상황](docs/진행상황.md) | 스프린트별 완료·예정 항목 |
 | [QA 체크리스트](docs/qa-체크리스트.md) | 케이스를 뽑는 5가지 축. 기능 만들 때마다 대입 |
 | [설계 체크리스트](docs/설계-체크리스트.md) | 구조가 규칙대로인가. QA 통과 직후 커밋 전에 대입 |
+| [AWS 인프라](docs/aws-인프라.md) | AWS 에 지금 무엇이 어떤 값으로 있는지, 왜 그렇게 골랐는지, 자주 하는 조작(접속·유형 변경·요금). 값(IP·키)은 없음 |
 | 로컬환경.md (git 제외) | 테스트 계정 등 커밋하면 안 되는 로컬 메모. `.gitignore` 등록됨 |
 
 ---
@@ -23,7 +24,7 @@ AI 영수증 인식 및 지도 기반 개인·공동 가계부. 24시간 상시 
 - **프론트** — Vanilla JS(ES6+), HTML5/CSS3, Fetch API, PWA 예정
 - **AI** — 네이버 Clova 일반 OCR + 로컬 LLM(Ollama) + 한국어 문장 임베딩
 - **지도** — 카카오맵 API
-- **인프라** — AWS EC2(t3.medium) 단일 인스턴스에 Spring Boot + MySQL + 임베딩 모델 + Redis, S3, Nginx, GitHub Actions
+- **인프라** — AWS EC2(ARM t4g · Ubuntu 26.04 LTS. 지금 t4g.small, Ollama 도입 때 t4g.medium) 단일 인스턴스에 Spring Boot + MySQL + 임베딩 모델 + Redis, S3, Nginx, GitHub Actions
 
 패키지 루트: `com.kyumin.ledger`
 

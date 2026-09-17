@@ -21,6 +21,15 @@
 - **선택** — t3.medium 한 대에 Spring Boot + MySQL + 임베딩 모델 + Redis(컨테이너) 전부 구동. 스왑 대신 여유 메모리 확보
 - **감수** — 단일 장애점. DB 백업·복구를 직접 관리해야 함
 - **배경** — AWS 무료 티어는 이전 계정 이력으로 만료됨
+- **보완 (2026-09-17, 인스턴스 생성 시)** — t3.medium(x86) → **ARM Graviton(t4g). 지금은 t4g.small(2GB), Ollama 가 들어오는 시점에 t4g.medium(4GB)**
+  - 시간당(콘솔 표시가, 서울) — t3.medium $0.052 / t4g.medium $0.0416 / t4g.small $0.0208
+  - 월 추정(730시간 + 디스크 30GB gp3 + 공인 IPv4, VAT 포함, 환율 1,400원 가정) — t3.medium 약 6.8만원 / t4g.medium 약 5.7만원 / **t4g.small 약 3.3만원**
+  - 작게 시작하는 이유 — 지금 올라가는 건 Spring Boot(약 400MB) + MySQL(약 500MB)뿐. 4GB 가 필요한 건 Ollama·임베딩 모델부터인데 Sprint 5 까지 기간을 알 수 없어, 안 쓰는 2GB 에 매달 약 2.4만원을 미리 내지 않는다. 유형 변경은 중지 → 변경 → 시작 5분, 탄력적 IP 라 주소도 그대로 (ADR-041 을 인프라에 적용)
+  - 처음엔 t4g.medium 으로 만들었다가 같은 날 small 로 내림 — 이 변경 자체가 위 "5분"의 실측 (크레딧 사양 Standard 도 유지됨)
+  - ARM 을 고를 수 있었던 이유 — jar 는 아키텍처 무관, MySQL·Nginx·Ollama 모두 arm64 공식 지원. small↔medium 은 자유롭지만 **ARM↔x86 은 인스턴스를 새로 만들어야 한다**
+  - 1GB(t4g.micro, 약 2.2만원)는 탈락 — 앱 + MySQL 로 꽉 차서 배포 중 메모리 부족으로 죽을 수 있다
+  - 크레딧 사양은 **Standard** — T 계열 기본값 Unlimited 는 CPU 를 오래 쓰면(Ollama 추론) 추가 요금이 붙는다. Standard 는 크레딧이 떨어지면 느려질 뿐 요금은 고정
+  - OS 는 Ubuntu 26.04 LTS — MySQL 8.0 이 2026-04 지원 종료라 새 운영 서버는 최신 LTS 의 패키지를 쓴다. CI 의 `mysql:8.0` 이미지는 EC2 에 설치된 버전에 맞춰 올린다 (진행상황 로드맵)
 
 ### ADR-003. 벡터를 MySQL JSON에 저장 (벡터 DB 미사용)
 
