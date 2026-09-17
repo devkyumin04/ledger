@@ -72,7 +72,7 @@ function createItem(t) {
     const amountClass = t.transType === 'I' ? 'amount-income' : 'amount-expense';
     li.innerHTML = `
         <span class="trans-date">${t.transDate.slice(5)}</span>
-        <span class="trans-category">${t.categoryEmoji ?? ''} ${t.categoryName}</span>
+        <span class="trans-category">${escapeHtml(t.categoryEmoji ?? '')} ${escapeHtml(t.categoryName)}</span>
         <span class="trans-memo">${escapeHtml(t.transMemo ?? '')}</span>
         <span class="trans-amount ${amountClass}">${sign}${won(t.transAmount)}</span>
         <span class="actions">
@@ -81,17 +81,6 @@ function createItem(t) {
         </span>
     `;
     return li;
-}
-
-function won(n) {
-    return n.toLocaleString('ko-KR');
-}
-
-// 메모는 사용자 입력이라 innerHTML 에 그대로 넣으면 안 된다
-function escapeHtml(s) {
-    return s.replace(/[&<>"']/g, c => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-    }[c]));
 }
 
 // ───── 월 이동 (12월 → 다음 해 1월)

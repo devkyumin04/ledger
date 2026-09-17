@@ -31,7 +31,7 @@ function createItem(c, isChild) {
     const li = document.createElement('li');
     li.className = 'category-item' + (isChild ? ' child' : '');
     li.innerHTML = `
-        <span>${c.categoryEmoji ?? '' } ${c.categoryName}</span>
+        <span>${escapeHtml(c.categoryEmoji ?? '')} ${escapeHtml(c.categoryName)}</span>
         ${c.isDefault ? '' : `
         <span class="actions">
             <button data-action="edit" data-id="${c.categoryNum}">수정</button>
