@@ -9,6 +9,8 @@
     --accent-text: #fff;
     --error: #d33;
     --overlay: rgba(0,0,0,.4);
+    --income: #2f855a;
+    --expense: #c53030;
 }
 
 [data-theme="dark"] {
@@ -166,5 +168,36 @@ a {
 .transaction-item .trans-memo { flex: 1; opacity: .8; }
 .transaction-item .trans-amount { margin-left: auto; font-variant-numeric: tabular-nums; }
 
-.amount-income { color: #2f855a; }
-.amount-expense { color: #c53030; }
+.amount-income { color: var(--income); }
+.amount-expense { color: var(--expense); }
+
+/* ── 통계 화면 ───────────────────────────── */
+
+/* 요약 4개 — 2×2 격자 */
+.stat-summary { display: grid; grid-template-columns: 1fr 1fr; }
+
+/* 봉투 목록 — category-item 과 같은 리듬 */
+.stat-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--border);
+}
+.stat-item.child { margin-left: 24px; opacity: .8; }
+.stat-item .stat-name { flex: 1; }
+.stat-item .stat-ratio { width: 56px; text-align: right; opacity: .7; }
+.stat-item .stat-amount { width: 110px; text-align: right; font-variant-numeric: tabular-nums; }
+.stat-envelope > summary { cursor: pointer; list-style: none; }
+.stat-envelope > summary::-webkit-details-marker { display: none; }   /* Safari 는 list-style 로 안 지워짐 */
+.stat-envelope > summary::before { content: '▸'; width: 12px; }
+.stat-envelope[open] > summary::before { content: '▾'; }
+
+/* 6개월 추이 — CSS 막대. 길이는 6개월 최댓값 기준 */
+.trend-item { display: flex; align-items: center; gap: 10px; padding: 6px 4px; }
+.trend-item .trend-label { width: 60px; opacity: .7; }
+.trend-item .trend-bars { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.trend-item .bar { display: block; height: 8px; border-radius: 2px; }
+.trend-item .bar-income { background: var(--income); }
+.trend-item .bar-expense { background: var(--expense); }
+.trend-item .trend-balance { width: 110px; text-align: right; font-variant-numeric: tabular-nums; }
