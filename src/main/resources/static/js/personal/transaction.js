@@ -5,6 +5,10 @@ requireLogin();
 let transactions = [];
 let categories = [];
 
+// 화면 위 수입/지출/잔액. 목록을 직접 더하지 않고 통계 API 값을 그대로 표시한다.
+// 돈 합계는 계산하는 곳이 한 군데여야 통계 화면과 어긋나지 않는다 (ADR-038, 040)
+let summary = null;
+
 // 모달의 지출/수입 토글. 서버로 보내는 값이 아니라 카테고리 목록을 거르는 용도
 let modalType = 'E';
 
@@ -34,12 +38,16 @@ async function loadCategories() {
 // 카테고리는 시작할 때 한 번만 불러오면 다른 탭에서 추가·삭제한 것을 모른다.
 // 거래와 달리 version 이 없어 충돌(409)로 걸러지지도 않고, 지워진 카테고리로
 // 저장하면 404 가 난다. 그래서 목록을 새로 받을 때 카테고리도 같이 받는다.
+// 세 요청은 서로의 결과가 필요 없어 동시에 보낸다 — 요청 수는 늘어도 기다리는 시간은 한 번 (ADR-040)
 async function loadTransactions() {
-    await loadCategories();
-
-    const data = await apiRequest(`/api/transactions?year=${year}&month=${month}`, 'GET');
-    if (!data) return;
-    transactions = data;
+    const [, list, stats] = await Promise.all([
+        loadCategories(),
+        apiRequest(`/api/transactions?year=${year}&month=${month}`, 'GET'),
+        apiRequest(`/api/statistics?year=${year}&month=${month}`, 'GET'),
+    ]);
+    if (!list || !stats) return;
+    transactions = list;
+    summary = stats;
     render();
 }
 
@@ -47,15 +55,9 @@ async function loadTransactions() {
 function render() {
     monthLabel.textContent = `${year}년 ${month}월`;
 
-    let income = 0;
-    let expense = 0;
-    transactions.forEach(t => {
-        if (t.transType === 'I') income += t.transAmount;
-        else expense += t.transAmount;
-    });
-    document.getElementById('sumIncome').textContent = won(income);
-    document.getElementById('sumExpense').textContent = won(expense);
-    document.getElementById('sumBalance').textContent = won(income - expense);
+    document.getElementById('sumIncome').textContent = won(summary.totalIncome);
+    document.getElementById('sumExpense').textContent = won(summary.totalExpense);
+    document.getElementById('sumBalance').textContent = won(summary.balance);
 
     listEl.innerHTML = '';
     transactions.forEach(t => listEl.appendChild(createItem(t)));
