@@ -37,8 +37,21 @@ check J 400 "$(req DELETE /api/categories/$TRANS)"
 check K 204 "$(req DELETE /api/categories/$CAFE)"
 check L 204 "$(req DELETE /api/categories/$TRANS)"
 
+echo "----- 11. 이름 정규화 (앞뒤 공백은 저장 전에 제거 — DB collation 에 맡기지 않는다)"
+t M 201 POST /api/categories '{"categoryName":"  QA공백  ","categoryType":"E"}'; SP=$(jnum categoryNum)
+has M-b '"categoryName":"QA공백"'
+t N 200 PUT /api/categories/$SP '{"categoryName":"QA공백수정   ","categoryType":"E"}'
+has N-b '"categoryName":"QA공백수정"'
+t O 400 POST /api/categories '{"categoryName":"미분류 ","categoryType":"E"}'
+t P 400 PUT /api/categories/$SP '{"categoryName":" 미분류","categoryType":"E"}'
+t Q 400 POST /api/categories '{"categoryName":"   ","categoryType":"E"}'
+t R 201 POST /api/categories '{"categoryName":"　QA전각　","categoryType":"E"}'; ZEN=$(jnum categoryNum)
+has R-b '"categoryName":"QA전각"'
+
 echo "----- 정리"
 req DELETE /api/categories/$BIG > /dev/null
+req DELETE /api/categories/$SP > /dev/null
+req DELETE /api/categories/$ZEN > /dev/null
 
 summary
 echo "(10번 로그인 STATUS는 DB에서 수동 확인: rollback 계정 user_last_login_at 갱신됐는지, status='W'로 바꾸고 로그인 401인지)"

@@ -29,7 +29,7 @@ public class PersonalCategoryService {
 
     public CategoryResponseDto createCategory(Integer userNum, CategoryRequestDto requestDto) {
     	
-    	if (PersonalCategory.DEFAULT_CATEGORY_NAME.equals(requestDto.getCategoryName().trim())) {
+    	if (PersonalCategory.DEFAULT_CATEGORY_NAME.equals(requestDto.getCategoryName())) {
     	    throw new ReservedCategoryNameException("사용할 수 없는 카테고리 이름입니다.");
     	}
     	
@@ -92,7 +92,7 @@ public class PersonalCategoryService {
     
     public CategoryResponseDto updateCategory(Integer userNum, Integer categoryNum, CategoryRequestDto requestDto) {
     	
-    	if (PersonalCategory.DEFAULT_CATEGORY_NAME.equals(requestDto.getCategoryName().trim())) {
+    	if (PersonalCategory.DEFAULT_CATEGORY_NAME.equals(requestDto.getCategoryName())) {
     	    throw new ReservedCategoryNameException("사용할 수 없는 카테고리 이름입니다.");
     	}
     	

@@ -24,4 +24,12 @@ public class CategoryRequestDto {
 	@NotBlank(message = "카테고리 타입을 지정하시오.")
 	@Pattern(regexp="[IE]", message = "잘못된 카테고리 타입입니다!")
 	private String categoryType;
+
+	// 이름은 입구에서 한 번만 정규화한다 (앞뒤 공백 제거). Lombok 은 직접 쓴 세터가 있으면 그 필드 세터를 만들지 않는다.
+	// Jackson 이 이 세터로 값을 넣고 그 뒤에 @Valid 가 돌기 때문에, @NotBlank·@Size·예약어 검사·저장이 전부 정리된 값만 본다.
+	// trim() 이 아니라 strip() — 한글 입력기의 전각 공백(U+3000)까지 지운다.
+	// DB collation(PAD SPACE / NO PAD)에 "식비" = "식비 " 판단을 맡기지 않기 위함 (판단은 서버, ADR-038)
+	public void setCategoryName(String categoryName) {
+		this.categoryName = (categoryName == null) ? null : categoryName.strip();
+	}
 }
