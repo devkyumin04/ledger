@@ -96,6 +96,30 @@ mysql -u ledger_app -p ledger_db   # 앱 계정으로
 | 테이블 | `USE ledger_db; SHOW TABLES;` | 19개 — V1 의 18개 + `flyway_schema_history`. **이름은 전부 소문자** (ADR-045) |
 | 메모리 | `free -h` | available 300Mi 아래면 스왑 검토 |
 
+### DBeaver 로 운영 DB 보기 (SSH 터널)
+
+**3306 을 열지 않고도 본다.** 보안 그룹에 3306 이 없고 MySQL 도 `127.0.0.1` 바인딩이지만,
+SSH 로 먼저 서버에 들어간 뒤 그 통로 안에서 `localhost:3306` 에 붙으면 된다.
+결과적으로 DB 에 닿으려면 **pem 키(가진 것) + DB 비번(아는 것)** 둘 다 필요해진다.
+
+MySQL 커넥션을 새로 만들고 **두 탭을 나눠** 채운다 — SSH 탭은 "서버까지 가는 길", Main 탭은 "도착해서 누구로 어디에 붙나".
+
+| 탭 | 항목 | 값 |
+|---|---|---|
+| SSH (`+ SSH, SSL, ...` 로 추가) | Host / Port | `<EC2_HOST>` / `22` |
+| | User Name | `ubuntu` |
+| | Authentication Method | Public Key → Private Key 에 `<PEM_PATH>` |
+| Main | Server Host / Port | **`127.0.0.1`** / `3306` (서버 안에서 본 주소) |
+| | Database | `ledger_db` |
+| | Username / Password | `ledger_app` / `DB_PASSWORD` 값 |
+
+- **root 로는 못 붙는다** — `auth_socket` 이라 비번 자체를 받지 않는다 (ADR-043). 관리자 작업은 SSH 에서 `sudo mysql`
+- 확인 순서 — SSH 탭의 `Test tunnel configuration`(Connected) → 왼쪽 아래 `Test Connection`(8.4.11 표시)
+- **커넥션 이름은 `ledger_db(EC2)`, Connection type 은 Production** 으로. 탭이 빨개지고 DELETE·UPDATE 에 확인창이 뜬다.
+  로컬 `ledger_db` 와 헷갈려 운영 데이터를 지우는 사고를 막는 가장 싼 장치다
+- 집 IP 가 바뀌면 이 터널도 SSH 와 같이 타임아웃 난다 → 보안 그룹 22번 소스를 "내 IP" 로 다시
+- 이 방식은 나중에 서버가 늘거나 DB 를 밖으로 빼도 유지된다 — 사람은 터널·배스천을 거치고, 3306 은 앱 서버에만 연다
+
 - 앱 계정 비밀번호는 해시로만 저장돼 **다시 꺼내볼 수 없다.** 잃어버리면 `ALTER USER 'ledger_app'@'localhost' IDENTIFIED BY '새 값';` 로 재설정하고 systemd `EnvironmentFile` 도 같이 고친다
 - root 비번을 만들지 않은 이유는 ADR-043
 
@@ -166,3 +190,4 @@ journalctl -u ledger --since "10 min ago"
 | 2026-09-17 | Java 17 JRE(headless) 설치 · 앱 실행 유저 `ledger` 생성(시스템 계정 · `nologin` · 비번 없음) | 직접 |
 | 2026-09-18 | `/opt/ledger`·`/etc/ledger` 생성 · `ledger.env`(root 600, 값 4개) · `ledger.service` 작성 · `daemon-reload`·`enable` | 직접 |
 | 2026-09-18 | 2-5 수동 첫 배포 — jar `scp` → `systemctl start` → Flyway V1 적용(19테이블). 테이블명 대소문자로 1회 실패 후 DB 재생성(ADR-045) · 가입·로그인·거래 확인 · 타임존 3계층 확인 · 재부팅 자동 기동 확인 | 직접 |
+| 2026-09-18 | DBeaver 운영 DB 커넥션 — SSH 터널(pem) + `ledger_app`. 3306 은 열지 않음 | 직접 |
