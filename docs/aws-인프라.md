@@ -23,6 +23,7 @@ AWS 콘솔에서 **무엇을 어떤 값으로 만들었고 왜 그랬는지**. �
 | MySQL | **8.4.11** (우분투 패키지, 2026-09-17 설치) | `ledger_db` + 앱 계정 `ledger_app`@`localhost`. root 는 `auth_socket`(비번 없음, 소켓 인증). 3306 은 `127.0.0.1` 바인딩 |
 | Java | **17.0.20** (`openjdk-17-jre-headless`, arm64) | JRE 만 — 빌드는 맥·CI, 서버는 실행만 |
 | 앱 실행 유저 | `ledger` (UID 999) | 시스템 계정 · 셸 `nologin` · 비번 없음(`!`) · 홈 없음. systemd `User=` 로 쓴다 (ADR-043 과 같은 판단) |
+| 앱 서비스 | `ledger.service` (systemd, 2026-09-18) | `enable` 됨 · `Restart=always`. jar 는 `/opt/ledger/ledger.jar`(고정 이름), 비밀값은 `/etc/ledger/ledger.env`(root 600) |
 | OS 타임존 | `Asia/Seoul` | MySQL 설치 **전에** 바꿨다. MySQL `time_zone=SYSTEM` 이 OS 를 따라가므로 순서가 중요 (ADR-026) |
 | 예산 알림 | `ledger-monthly` 월 $30 | 실제 85% · 100% 도달, 예상 100% 도달 시 메일. **알림만 — 과금을 멈추지는 않는다** |
 
@@ -107,6 +108,22 @@ mysql -u ledger_app -p ledger_db   # 앱 계정으로
 
 운영 중엔 1~3 사이 몇 분간 서비스가 내려간다. systemd 자동 기동(2단계)이 돼 있으면 시작 후 앱은 알아서 올라온다.
 
+### 앱 서비스 조작 (`ledger.service`)
+
+```
+sudo systemctl start ledger      # 지금 띄우기
+sudo systemctl stop ledger
+sudo systemctl restart ledger    # 배포 후
+systemctl status ledger          # 상태 한 눈에 (active / 마지막 로그 몇 줄)
+journalctl -u ledger -f          # 로그 실시간 (Ctrl+C 로 빠져나옴)
+journalctl -u ledger -n 100      # 최근 100줄
+journalctl -u ledger --since "10 min ago"
+```
+
+- 유닛 파일이나 `ledger.env` 를 고쳤으면 **`daemon-reload` 먼저**, 그다음 `restart`
+- `enable` 은 "부팅 때마다", `start` 는 "지금". 별개다
+- 기동 실패는 `Restart=always` 때문에 5초마다 반복된다 — `status` 에 재시작 횟수가 쌓이면 로그부터 본다
+
 ### 요금 확인
 
 과금 정보 및 비용 관리 → 청구서(이번 달 누적) / Cost Explorer(일별). 예산 알림 메일이 오면 먼저 **EC2 대시보드에서 모르는 인스턴스가 떠 있는지**, 리전을 바꿔가며 확인.
@@ -147,3 +164,4 @@ mysql -u ledger_app -p ledger_db   # 앱 계정으로
 | 2026-09-17 | OS 타임존 KST → `apt upgrade`(169개) → 커널 재부팅 → MySQL 8.4.11 설치 → `mysql_secure_installation` | 직접 |
 | 2026-09-17 | `ledger_db` 생성 · 앱 계정 `ledger_app` 생성 · `ledger_db.*` 권한 부여 (ADR-043 · ADR-044) | 직접 |
 | 2026-09-17 | Java 17 JRE(headless) 설치 · 앱 실행 유저 `ledger` 생성(시스템 계정 · `nologin` · 비번 없음) | 직접 |
+| 2026-09-18 | `/opt/ledger`·`/etc/ledger` 생성 · `ledger.env`(root 600, 값 4개) · `ledger.service` 작성 · `daemon-reload`·`enable` | 직접 |
