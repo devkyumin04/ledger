@@ -17,12 +17,14 @@ AWS 콘솔에서 **무엇을 어떤 값으로 만들었고 왜 그랬는지**. �
 | 인스턴스 유형 | **t4g.small** (2vCPU · 2GB) | $0.0208/시간. medium 으로 만들었다가 같은 날 내림. Ollama 설치 직전에 t4g.medium 으로 (로드맵) |
 | 크레딧 사양 | **Standard** | 기본값 Unlimited 에서 변경. CPU 를 오래 써도 추가 요금 없음 (대신 크레딧이 떨어지면 느려짐) |
 | 디스크 | 30GB gp3 | 기본 8GB 에서 변경. **늘릴 수는 있어도 줄일 수는 없다** |
-| 키 페어 | `ledger-admin` (ED25519, `.pem`) | 내 접속용. 다운로드는 생성 시 1회뿐 — 잃어버리면 재발급 불가. CD 용 키는 3단계에서 따로 만든다 |
+| 키 페어 (내 접속용) | `ledger-admin` (ED25519, `.pem`) | AWS 가 생성. 다운로드는 생성 시 1회뿐 — 잃어버리면 재발급 불가 |
+| 키 페어 (CD 배포용) | `ledger-deploy` (ED25519, 2026-09-18) | **AWS 키 페어가 아니라 맥에서 직접 생성**(`ssh-keygen`). 공개키는 `deploy` 계정 `authorized_keys`, 개인키는 GitHub Secrets. passphrase 없음. 유출되면 새로 만들어 갈아 끼우면 된다 |
 | 보안 그룹 | `launch-wizard-1` | 인바운드 22 = **내 IP 만** / 80 · 443 = 전체. 8080 · 3306 은 열지 않음 |
 | 탄력적 IP | 1개, `ledger-prod` 에 연결 | 재시작해도 IP 고정. **인스턴스 없이 혼자 남으면 그것대로 과금** — 인스턴스를 지울 땐 같이 릴리스 |
 | MySQL | **8.4.11** (우분투 패키지, 2026-09-17 설치) | `ledger_db` + 앱 계정 `ledger_app`@`localhost`. root 는 `auth_socket`(비번 없음, 소켓 인증). 3306 은 `127.0.0.1` 바인딩 |
 | Java | **17.0.20** (`openjdk-17-jre-headless`, arm64) | JRE 만 — 빌드는 맥·CI, 서버는 실행만 |
 | 앱 실행 유저 | `ledger` (UID 999) | 시스템 계정 · 셸 `nologin` · 비번 없음(`!`) · 홈 없음. systemd `User=` 로 쓴다 (ADR-043 과 같은 판단) |
+| 배포 계정 | `deploy` (2026-09-18) | CD 전용. 셸 `/bin/bash`(SSH 로 들어와 jar 를 놓아야 하므로) · 비번 잠김, 키만 · `/opt/ledger` 소유 · sudo 는 `systemctl restart ledger` **한 줄만**(`/etc/sudoers.d/ledger-deploy`). `ledger.env` 는 못 읽는다 |
 | 앱 서비스 | `ledger.service` (systemd, 2026-09-18) | **`active (running)`** · `enable` 됨 · `Restart=always`. jar 는 `/opt/ledger/ledger.jar`(고정 이름), 비밀값은 `/etc/ledger/ledger.env`(root 600). 2-5 에서 첫 배포·재부팅 자동 기동 확인 |
 | OS 타임존 | `Asia/Seoul` | MySQL 설치 **전에** 바꿨다. MySQL `time_zone=SYSTEM` 이 OS 를 따라가므로 순서가 중요 (ADR-026) |
 | 예산 알림 | `ledger-monthly` 월 $30 | 실제 85% · 100% 도달, 예상 100% 도달 시 메일. **알림만 — 과금을 멈추지는 않는다** |
@@ -191,3 +193,4 @@ journalctl -u ledger --since "10 min ago"
 | 2026-09-18 | `/opt/ledger`·`/etc/ledger` 생성 · `ledger.env`(root 600, 값 4개) · `ledger.service` 작성 · `daemon-reload`·`enable` | 직접 |
 | 2026-09-18 | 2-5 수동 첫 배포 — jar `scp` → `systemctl start` → Flyway V1 적용(19테이블). 테이블명 대소문자로 1회 실패 후 DB 재생성(ADR-045) · 가입·로그인·거래 확인 · 타임존 3계층 확인 · 재부팅 자동 기동 확인 | 직접 |
 | 2026-09-18 | DBeaver 운영 DB 커넥션 — SSH 터널(pem) + `ledger_app`. 3306 은 열지 않음 | 직접 |
+| 2026-09-18 | 3단계 CD 준비 — 배포 키쌍 `ledger-deploy` 생성 · `deploy` 계정 + `authorized_keys` · `/opt/ledger` 소유권 이전 · sudoers 한 줄(`restart` 만) · 권한 경계 실측(stop·`ledger.env` 거부) | 직접 |
