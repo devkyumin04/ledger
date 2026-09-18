@@ -23,7 +23,7 @@ AWS 콘솔에서 **무엇을 어떤 값으로 만들었고 왜 그랬는지**. �
 | MySQL | **8.4.11** (우분투 패키지, 2026-09-17 설치) | `ledger_db` + 앱 계정 `ledger_app`@`localhost`. root 는 `auth_socket`(비번 없음, 소켓 인증). 3306 은 `127.0.0.1` 바인딩 |
 | Java | **17.0.20** (`openjdk-17-jre-headless`, arm64) | JRE 만 — 빌드는 맥·CI, 서버는 실행만 |
 | 앱 실행 유저 | `ledger` (UID 999) | 시스템 계정 · 셸 `nologin` · 비번 없음(`!`) · 홈 없음. systemd `User=` 로 쓴다 (ADR-043 과 같은 판단) |
-| 앱 서비스 | `ledger.service` (systemd, 2026-09-18) | `enable` 됨 · `Restart=always`. jar 는 `/opt/ledger/ledger.jar`(고정 이름), 비밀값은 `/etc/ledger/ledger.env`(root 600) |
+| 앱 서비스 | `ledger.service` (systemd, 2026-09-18) | **`active (running)`** · `enable` 됨 · `Restart=always`. jar 는 `/opt/ledger/ledger.jar`(고정 이름), 비밀값은 `/etc/ledger/ledger.env`(root 600). 2-5 에서 첫 배포·재부팅 자동 기동 확인 |
 | OS 타임존 | `Asia/Seoul` | MySQL 설치 **전에** 바꿨다. MySQL `time_zone=SYSTEM` 이 OS 를 따라가므로 순서가 중요 (ADR-026) |
 | 예산 알림 | `ledger-monthly` 월 $30 | 실제 85% · 100% 도달, 예상 100% 도달 시 메일. **알림만 — 과금을 멈추지는 않는다** |
 
@@ -93,7 +93,7 @@ mysql -u ledger_app -p ledger_db   # 앱 계정으로
 | 타임존 | `SELECT @@global.time_zone, NOW();` | `SYSTEM` + 한국 시각 |
 | 앱 계정 권한 | `SHOW GRANTS FOR 'ledger_app'@'localhost';` | `USAGE ON *.*` + `ALL PRIVILEGES ON ledger_db.*` 두 줄만 |
 | collation | `SHOW CREATE DATABASE ledger_db;` | `utf8mb4_0900_ai_ci` (맥·CI 와 같은 값, ADR-044) |
-| 테이블 | `USE ledger_db; SHOW TABLES;` | 첫 배포 전엔 비어 있음. Flyway V1 이 18개를 만든다 |
+| 테이블 | `USE ledger_db; SHOW TABLES;` | 19개 — V1 의 18개 + `flyway_schema_history`. **이름은 전부 소문자** (ADR-045) |
 | 메모리 | `free -h` | available 300Mi 아래면 스왑 검토 |
 
 - 앱 계정 비밀번호는 해시로만 저장돼 **다시 꺼내볼 수 없다.** 잃어버리면 `ALTER USER 'ledger_app'@'localhost' IDENTIFIED BY '새 값';` 로 재설정하고 systemd `EnvironmentFile` 도 같이 고친다
@@ -165,3 +165,4 @@ journalctl -u ledger --since "10 min ago"
 | 2026-09-17 | `ledger_db` 생성 · 앱 계정 `ledger_app` 생성 · `ledger_db.*` 권한 부여 (ADR-043 · ADR-044) | 직접 |
 | 2026-09-17 | Java 17 JRE(headless) 설치 · 앱 실행 유저 `ledger` 생성(시스템 계정 · `nologin` · 비번 없음) | 직접 |
 | 2026-09-18 | `/opt/ledger`·`/etc/ledger` 생성 · `ledger.env`(root 600, 값 4개) · `ledger.service` 작성 · `daemon-reload`·`enable` | 직접 |
+| 2026-09-18 | 2-5 수동 첫 배포 — jar `scp` → `systemctl start` → Flyway V1 적용(19테이블). 테이블명 대소문자로 1회 실패 후 DB 재생성(ADR-045) · 가입·로그인·거래 확인 · 타임존 3계층 확인 · 재부팅 자동 기동 확인 | 직접 |
