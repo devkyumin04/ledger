@@ -21,6 +21,8 @@ AWS 콘솔에서 **무엇을 어떤 값으로 만들었고 왜 그랬는지**. �
 | 보안 그룹 | `launch-wizard-1` | 인바운드 22 = **내 IP 만** / 80 · 443 = 전체. 8080 · 3306 은 열지 않음 |
 | 탄력적 IP | 1개, `ledger-prod` 에 연결 | 재시작해도 IP 고정. **인스턴스 없이 혼자 남으면 그것대로 과금** — 인스턴스를 지울 땐 같이 릴리스 |
 | MySQL | **8.4.11** (우분투 패키지, 2026-09-17 설치) | `ledger_db` + 앱 계정 `ledger_app`@`localhost`. root 는 `auth_socket`(비번 없음, 소켓 인증). 3306 은 `127.0.0.1` 바인딩 |
+| Java | **17.0.20** (`openjdk-17-jre-headless`, arm64) | JRE 만 — 빌드는 맥·CI, 서버는 실행만 |
+| 앱 실행 유저 | `ledger` (UID 999) | 시스템 계정 · 셸 `nologin` · 비번 없음(`!`) · 홈 없음. systemd `User=` 로 쓴다 (ADR-043 과 같은 판단) |
 | OS 타임존 | `Asia/Seoul` | MySQL 설치 **전에** 바꿨다. MySQL `time_zone=SYSTEM` 이 OS 를 따라가므로 순서가 중요 (ADR-026) |
 | 예산 알림 | `ledger-monthly` 월 $30 | 실제 85% · 100% 도달, 예상 100% 도달 시 메일. **알림만 — 과금을 멈추지는 않는다** |
 
@@ -144,3 +146,4 @@ mysql -u ledger_app -p ledger_db   # 앱 계정으로
 | 2026-09-17 | 루트 MFA — 폰 OTP(Google Authenticator). 패스키(Touch ID)로 등록했다가 제거 | 직접 |
 | 2026-09-17 | OS 타임존 KST → `apt upgrade`(169개) → 커널 재부팅 → MySQL 8.4.11 설치 → `mysql_secure_installation` | 직접 |
 | 2026-09-17 | `ledger_db` 생성 · 앱 계정 `ledger_app` 생성 · `ledger_db.*` 권한 부여 (ADR-043 · ADR-044) | 직접 |
+| 2026-09-17 | Java 17 JRE(headless) 설치 · 앱 실행 유저 `ledger` 생성(시스템 계정 · `nologin` · 비번 없음) | 직접 |
