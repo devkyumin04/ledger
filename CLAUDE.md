@@ -24,7 +24,7 @@ AI 영수증 인식 및 지도 기반 개인·공동 가계부. 24시간 상시 
 - **프론트** — Vanilla JS(ES6+), HTML5/CSS3, Fetch API, PWA 예정
 - **AI** — 네이버 Clova 일반 OCR + 로컬 LLM(Ollama) + 한국어 문장 임베딩
 - **지도** — 카카오맵 API
-- **인프라** — AWS EC2(ARM t4g · Ubuntu 26.04 LTS. 지금 t4g.small, Ollama 도입 때 t4g.medium) 단일 인스턴스에 Spring Boot + MySQL + 임베딩 모델 + Redis, S3, Nginx, GitHub Actions
+- **인프라** — AWS EC2(ARM t4g · Ubuntu 26.04 LTS. 지금 t4g.small, Ollama 도입 때 t4g.medium) 단일 인스턴스에 Spring Boot + MySQL + 임베딩 모델 (Redis 없음 — 서버 2대부터), S3, Nginx, GitHub Actions
 
 패키지 루트: `com.kyumin.ledger`
 
