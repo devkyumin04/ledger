@@ -1,5 +1,7 @@
 package com.kyumin.ledger.config;
 
+import org.springframework.boot.health.actuate.endpoint.HealthEndpoint;
+import org.springframework.boot.security.autoconfigure.actuate.web.servlet.EndpointRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -40,6 +42,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/users/signup", "/api/users/login").permitAll()
                 .requestMatchers("/", "/views/**", "/css/**", "/js/**", "/error/**").permitAll()
+                .requestMatchers(EndpointRequest.to(HealthEndpoint.class)).permitAll()
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
