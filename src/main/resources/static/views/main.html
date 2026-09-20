@@ -2,22 +2,133 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>메인화면</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Ledger — 가계부</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
     <link rel="stylesheet" href="/css/common.css">
     <script src="/js/util/theme.js"></script>
 </head>
 <body>
-    <div class="page-container">
-        <h1 id="welcomeMessage"></h1>
+    <div class="home">
+        <header class="home-bar">
+            <span class="home-brand">Ledger</span>
+            <div class="home-bar-actions">
+                <button type="button" onclick="toggleTheme()" aria-label="테마 바꾸기">🌓</button>
+                <button id="logoutBtn" type="button">로그아웃</button>
+            </div>
+        </header>
 
-        <h2>메뉴</h2>
-        <a href="mypage.html">마이페이지</a>
-        <a href="/views/personal/personal-main.html">개인가계부</a>
-        <a href="group/group-main.html">공동가계부</a>
+        <section class="home-hero">
+            <h1 id="welcomeMessage"></h1>
+            <p>수입과 지출을 기록하고, 달마다 돈이 어디로 갔는지 한눈에 봅니다.</p>
+            <a class="home-cta" href="/views/personal/personal-main.html">가계부 열기</a>
+        </section>
 
-        <button id="logoutBtn">로그아웃</button>
-        <button type="button" onclick="toggleTheme()">🌓 테마</button>
+        <nav class="home-menu" aria-label="메뉴">
+            <a class="home-card" href="/views/personal/personal-main.html">
+                <span class="home-card-icon">📒</span>
+                <strong>개인가계부</strong>
+                <span>거래를 기록하고 달별로 봅니다</span>
+            </a>
+            <a class="home-card" href="/views/personal/category.html">
+                <span class="home-card-icon">🗂️</span>
+                <strong>카테고리</strong>
+                <span>지출·수입 분류를 만듭니다</span>
+            </a>
+            <a class="home-card" href="/views/personal/statistics.html">
+                <span class="home-card-icon">📊</span>
+                <strong>통계</strong>
+                <span>비중과 6개월 추이를 봅니다</span>
+            </a>
+            <div class="home-card is-soon">
+                <span class="home-card-icon">👥</span>
+                <strong>공동가계부</strong>
+                <span>준비 중</span>
+            </div>
+        </nav>
+
+        <section class="home-guide">
+            <h2>이렇게 씁니다</h2>
+
+            <article class="home-step">
+                <div class="home-step-text">
+                    <span class="home-step-num">1</span>
+                    <h3>카테고리를 만듭니다</h3>
+                    <p>지출과 수입을 나눠 분류를 만듭니다. 대분류 아래에 소분류를 한 단계 둘 수 있어요.
+                       카테고리를 지워도 그 안의 거래는 기본 분류로 옮겨져 사라지지 않습니다.</p>
+                    <a class="inline-link" href="/views/personal/category.html">카테고리 만들러 가기 →</a>
+                </div>
+                <figure class="home-shot" aria-hidden="true">
+                    <div class="home-shot-bar"><i></i><i></i><i></i><span>카테고리</span></div>
+                    <div class="home-shot-body">
+                        <div class="tabs"><span class="tab active">지출</span><span class="tab">수입</span></div>
+                        <div class="category-item">🍚 식비</div>
+                        <div class="category-item child">☕ 카페</div>
+                        <div class="category-item child">🍱 점심</div>
+                        <div class="category-item">🚌 교통</div>
+                    </div>
+                </figure>
+            </article>
+
+            <article class="home-step">
+                <div class="home-step-text">
+                    <span class="home-step-num">2</span>
+                    <h3>거래를 기록합니다</h3>
+                    <p>날짜·금액·카테고리·메모를 입력합니다. 지출인지 수입인지는 고른 카테고리에 따라 정해지고,
+                       ◀ ▶ 로 달을 옮기며 내역과 합계를 봅니다.</p>
+                    <a class="inline-link" href="/views/personal/personal-main.html">거래 기록하러 가기 →</a>
+                </div>
+                <figure class="home-shot" aria-hidden="true">
+                    <div class="home-shot-bar"><i></i><i></i><i></i><span>개인가계부</span></div>
+                    <div class="home-shot-body">
+                        <div class="month-nav"><span>◀</span><strong>2026년 9월</strong><span>▶</span></div>
+                        <ul class="home-shot-list">
+                            <li class="transaction-item">
+                                <span class="trans-date">09-20</span>
+                                <span class="trans-category">☕ 카페</span>
+                                <span class="trans-amount amount-expense">-4,800원</span>
+                            </li>
+                            <li class="transaction-item">
+                                <span class="trans-date">09-19</span>
+                                <span class="trans-category">🚌 교통</span>
+                                <span class="trans-amount amount-expense">-1,500원</span>
+                            </li>
+                            <li class="transaction-item">
+                                <span class="trans-date">09-10</span>
+                                <span class="trans-category">💼 월급</span>
+                                <span class="trans-amount amount-income">+2,800,000원</span>
+                            </li>
+                        </ul>
+                    </div>
+                </figure>
+            </article>
+
+            <article class="home-step">
+                <div class="home-step-text">
+                    <span class="home-step-num">3</span>
+                    <h3>달마다 돌아봅니다</h3>
+                    <p>어느 카테고리에 얼마를 썼는지 비중으로 보고, 최근 6개월의 수입·지출 흐름을 막대로 비교합니다.</p>
+                    <a class="inline-link" href="/views/personal/statistics.html">통계 보러 가기 →</a>
+                </div>
+                <figure class="home-shot" aria-hidden="true">
+                    <div class="home-shot-bar"><i></i><i></i><i></i><span>통계</span></div>
+                    <div class="home-shot-body">
+                        <div class="stat-item"><span class="stat-name">🍚 식비</span><span class="stat-ratio">42.0%</span><span class="stat-amount">315,000원</span></div>
+                        <div class="stat-item"><span class="stat-name">🚌 교통</span><span class="stat-ratio">18.5%</span><span class="stat-amount">138,700원</span></div>
+                        <div class="trend-item">
+                            <span class="trend-label">8월</span>
+                            <span class="trend-bars"><span class="bar bar-income" style="width:100%"></span><span class="bar bar-expense" style="width:58%"></span></span>
+                        </div>
+                        <div class="trend-item">
+                            <span class="trend-label">9월</span>
+                            <span class="trend-bars"><span class="bar bar-income" style="width:100%"></span><span class="bar bar-expense" style="width:41%"></span></span>
+                        </div>
+                    </div>
+                </figure>
+            </article>
+
+            <p class="home-note">위 화면들은 이해를 돕기 위한 예시입니다. 영수증 사진 인식 · 지도 · 공동가계부는 준비 중입니다.</p>
+        </section>
     </div>
 
     <script src="/js/util/authGuard.js"></script>
