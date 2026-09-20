@@ -116,6 +116,13 @@ jobs:
           # 지문이 다르면(가짜 서버·중간자) SSH 가 접속을 거부한다. 서버를 새로 만들면 EC2_HOST_KEY 도 갱신
           printf '%s %s\n' "${{ secrets.EC2_HOST }}" "${{ secrets.EC2_HOST_KEY }}" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
+          # 지문 형식을 여기서 검사한다 — 형식이 틀리면 ssh 는 그 줄을 조용히 무시하고
+          # "No ED25519 host key is known" 이라고만 해서 원인이 안 보인다 (2026-09-20 실제로 겪음)
+          KEY='${{ secrets.EC2_HOST_KEY }}'
+          if ! ssh-keygen -l -f ~/.ssh/known_hosts > /dev/null 2>&1; then
+            echo "EC2_HOST_KEY 형식이 올바르지 않습니다 — 길이 ${#KEY} (정상 80), 앞 11글자 '${KEY:0:11}' (정상 ssh-ed25519)"
+            exit 1
+          fi
 
       - name: jar 전송 → 교체 → 재시작
         run: |
