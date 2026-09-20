@@ -82,24 +82,6 @@ jobs:
           name: ledger-jar
           path: dist
 
-      # ⚠️ 임시 디버그 — 3-6 원인 확인용. 확인 끝나면 이 스텝 통째로 삭제할 것
-      - name: (임시) OIDC 클레임 · 역할 ARN 길이 확인
-        run: |
-          TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
-            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | python3 -c 'import sys,json;print(json.load(sys.stdin)["value"])')
-          # 토큰 자체는 찍지 않는다. 가운데 payload 만 디코드해 필요한 클레임만 출력
-          python3 - "$TOKEN" <<'PY'
-          import base64, json, sys
-          p = sys.argv[1].split('.')[1]
-          p += '=' * (-len(p) % 4)
-          c = json.loads(base64.urlsafe_b64decode(p))
-          for k in ('sub', 'aud', 'repository', 'repository_owner', 'ref', 'iss'):
-              print(f'{k:18}= {c.get(k)}')
-          PY
-          ARN='${{ secrets.AWS_ROLE_ARN }}'
-          echo "ARN 길이          = ${#ARN}   (정상 51)"
-          echo "ARN 접두/접미      = ${ARN:0:12}...${ARN: -8}"
-
       - name: AWS 임시 자격 받기 (OIDC)
         uses: aws-actions/configure-aws-credentials@e1253824e5c10ff9df46874f81ed3ec929e19cfd # v6.3.0
         with:

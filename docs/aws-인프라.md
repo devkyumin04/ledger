@@ -29,7 +29,7 @@ AWS 콘솔에서 **무엇을 어떤 값으로 만들었고 왜 그랬는지**. �
 | OS 타임존 | `Asia/Seoul` | MySQL 설치 **전에** 바꿨다. MySQL `time_zone=SYSTEM` 이 OS 를 따라가므로 순서가 중요 (ADR-026) |
 | IAM ID 제공업체 | `token.actions.githubusercontent.com` (OIDC, 2026-09-19) | GitHub Actions 가 발급한 토큰을 AWS 가 검증하도록 등록. 대상(Audience) `sts.amazonaws.com`. **이것만으론 권한이 0** — 권한은 역할에 붙는다 |
 | IAM 정책 | `ledger-deploy-sg-ssh` (2026-09-19) | `ec2:AuthorizeSecurityGroupIngress` · `ec2:RevokeSecurityGroupIngress` **두 개만**, 리소스는 `launch-wizard-1` 보안그룹 하나의 ARN. 포트까지는 못 좁힌다(IAM 조건 키에 포트가 없음) — 진행상황.md 3-4 의 감수 |
-| IAM 역할 | `ledger-github-deploy` (2026-09-19) | GitHub Actions 가 OIDC 로 맡는 역할. 신뢰 정책은 `repo:devkyumin04/ledger:ref:refs/heads/main` **한 줄만**(PR·포크 불가), 권한은 `ledger-deploy-sg-ssh` 하나. 역할 ARN 은 GitHub Secrets 에 |
+| IAM 역할 | `ledger-github-deploy` (2026-09-19, 신뢰 정책 2026-09-20 수정) | GitHub Actions 가 OIDC 로 맡는 역할. 신뢰 정책 `sub` 는 **main 브랜치 두 형태만**(`repo:<OWNER>/<REPO>:ref:refs/heads/main` + 숫자 ID 가 박힌 `repo:<OWNER>@<OWNER_ID>/<REPO>@<REPO_ID>:...`). **실제로 오는 건 ID 형태** — 콘솔이 자동으로 채워주는 이름 형태만 두면 `Not authorized` 로 거절된다(3-6 실측). 권한은 `ledger-deploy-sg-ssh` 하나 |
 | 예산 알림 | `ledger-monthly` 월 $30 | 실제 85% · 100% 도달, 예상 100% 도달 시 메일. **알림만 — 과금을 멈추지는 않는다** |
 
 아직 없는 것 — 도메인, HTTPS 인증서, S3 버킷, IAM 역할, SES. 각각 진행상황.md 5단계 · Sprint 2 에서.
@@ -220,3 +220,4 @@ journalctl -u ledger --since "10 min ago"
 | 2026-09-19 | 3-4 CD 권한(B안) — IAM **OIDC 공급자** 등록. 배포할 때만 보안 그룹 22번에 러너 IP 를 열고 닫기 위한 권한 준비 | AI 가 콘솔 조작(내장 브라우저) |
 | 2026-09-19 | IAM 정책 `ledger-deploy-sg-ssh` 생성(시각적 편집기, EC2 2작업 + SG ARN 1개) | AI 가 콘솔 조작(내장 브라우저) |
 | 2026-09-19 | IAM 역할 `ledger-github-deploy` 생성 — 웹 자격 증명(OIDC) · main 브랜치 한정 · 정책 1개 연결 | AI 가 콘솔 조작(내장 브라우저) |
+| 2026-09-20 | `ledger-github-deploy` 신뢰 정책 수정 — `sub` 에 숫자 ID 형태 추가(3-6 실패 원인) | AI 가 콘솔 조작(내장 브라우저) |
