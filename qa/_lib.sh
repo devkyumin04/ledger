@@ -5,24 +5,46 @@
 # 담고 있는 것: 서버 주소, 비밀번호 확인, PASS/FAIL 카운터,
 #               로그인·요청·판정 헬퍼, 시작 시 데이터 초기화 확인
 #
+# 환경변수 (전부 선택 — 안 주면 로컬에서 쓰던 그대로 동작한다. CI 게이트가 덮어쓴다)
+#   BASE            서버 주소. 기본 http://localhost:8080
+#   QA_RESET        y/n 을 주면 초기화 여부를 묻지 않는다 (CI 엔 대답해 줄 사람이 없다)
+#   QA_DB_HOST      있으면 mysql -h 로 TCP 접속. 러너의 MySQL 은 서비스 컨테이너라 소켓이 없다 (127.0.0.1)
+#   QA_DB_USER      기본 root
+#   QA_DB_PASSWORD  있으면 프롬프트 없이 접속. 없으면 -p 로 묻는다
+#
 # 주의: 중첩 명령치환 "$(req ... "body")" 은 macOS /bin/sh 에서 body 가 유실된다.
 #       본문은 B=... 변수에 담고 t() 에 넘길 것. (트러블슈팅 8)
 
-BASE=http://localhost:8080
+BASE="${BASE:-http://localhost:8080}"
 QA_PASSWORD="${QA_PASSWORD:?QA_PASSWORD 환경변수가 필요합니다.  예) export QA_PASSWORD='비밀번호'}"
 QA_DIR="$(cd "$(dirname "$0")" && pwd)"
 PASS=0; FAIL=0; LAST=""
+
+# ── DB 접속 ───────────────────────────────────────────────
+# 접속 방법을 한 곳에 둔다 (reset-all.sh 도 이걸 쓴다). 비번은 명령줄 인자가 아니라
+# MYSQL_PWD 로 넘긴다 — 인자로 주면 프로세스 목록에 보이고 mysql 이 경고를 찍는다.
+qa_mysql() {
+  if [ -n "$QA_DB_PASSWORD" ]; then
+    MYSQL_PWD="$QA_DB_PASSWORD" mysql ${QA_DB_HOST:+-h "$QA_DB_HOST"} -u "${QA_DB_USER:-root}" ledger_db "$@"
+  else
+    mysql ${QA_DB_HOST:+-h "$QA_DB_HOST"} -u "${QA_DB_USER:-root}" -p ledger_db "$@"
+  fi
+}
 
 # ── 시작 시 초기화 여부를 묻는다 ──────────────────────────────
 # 항상 자동으로 밀면 화면 개발 중 손으로 넣은 데이터가 매번 날아가고,
 # 반대로 안 밀면 QA 카테고리가 계속 쌓인다. 그래서 그때그때 고르게 한다.
 # (유저와 '미분류'는 reset-data.sql 이 남기므로 재가입은 필요 없다)
 ask_reset() {
-  printf "기존 거래·카테고리를 지우고 시작할까요? (y/N) "
-  read ANS
+  if [ -n "$QA_RESET" ]; then
+    ANS="$QA_RESET"   # 비대화 모드 — 묻지 않는다
+  else
+    printf "기존 거래·카테고리를 지우고 시작할까요? (y/N) "
+    read ANS
+  fi
   case "$ANS" in
     [yY]*)
-      mysql -u root -p ledger_db < "$QA_DIR/reset-data.sql" || { echo "❌ 초기화 실패"; exit 1; }
+      qa_mysql < "$QA_DIR/reset-data.sql" || { echo "❌ 초기화 실패"; exit 1; }
       echo ;;
     *) echo "→ 기존 데이터 유지"; echo ;;
   esac
@@ -95,4 +117,6 @@ neednum() {
 summary() {
   echo "═════════════════════════════"
   printf "PASS %d / FAIL %d\n" $PASS $FAIL
+  # 실패가 하나라도 있으면 종료코드 1 — 이게 없으면 CI 게이트가 항상 통과한다 (ADR-042)
+  [ "$FAIL" -eq 0 ] || exit 1
 }
