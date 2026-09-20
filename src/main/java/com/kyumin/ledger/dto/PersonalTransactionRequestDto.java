@@ -3,7 +3,6 @@ package com.kyumin.ledger.dto;
 import java.time.LocalDate;
 
 import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.PastOrPresent;
 import jakarta.validation.constraints.Size;
@@ -21,7 +20,7 @@ public class PersonalTransactionRequestDto {
 	
 	@NotNull(message = "거래내역의 금액은 필수로 입력해야 합니다!")
 	@Max(value = 1000000000000L, message = "숫자는 1조원 이하 입력 가능합니다!")
-	@Min(value = 1, message = "금액은 1원 이상 입력하여야 합니다!")
+	// @Min(value = 1, message = "금액은 1원 이상 입력하여야 합니다!")
 	private Long transAmount;
 	
 	@NotNull(message = "날짜는 필수로 지정해야 합니다!")
