@@ -27,6 +27,9 @@ AWS 콘솔에서 **무엇을 어떤 값으로 만들었고 왜 그랬는지**. �
 | 배포 계정 | `deploy` (2026-09-18) | CD 전용. 셸 `/bin/bash`(SSH 로 들어와 jar 를 놓아야 하므로) · 비번 잠김, 키만 · `/opt/ledger` 소유 · sudo 는 `systemctl restart ledger` **한 줄만**(`/etc/sudoers.d/ledger-deploy`). `ledger.env` 는 못 읽는다 |
 | 앱 서비스 | `ledger.service` (systemd, 2026-09-18) | **`active (running)`** · `enable` 됨 · `Restart=always`. jar 는 `/opt/ledger/ledger.jar`(고정 이름), 비밀값은 `/etc/ledger/ledger.env`(root 600). 2-5 에서 첫 배포·재부팅 자동 기동 확인 |
 | OS 타임존 | `Asia/Seoul` | MySQL 설치 **전에** 바꿨다. MySQL `time_zone=SYSTEM` 이 OS 를 따라가므로 순서가 중요 (ADR-026) |
+| IAM ID 제공업체 | `token.actions.githubusercontent.com` (OIDC, 2026-09-19) | GitHub Actions 가 발급한 토큰을 AWS 가 검증하도록 등록. 대상(Audience) `sts.amazonaws.com`. **이것만으론 권한이 0** — 권한은 역할에 붙는다 |
+| IAM 정책 | `ledger-deploy-sg-ssh` (2026-09-19) | `ec2:AuthorizeSecurityGroupIngress` · `ec2:RevokeSecurityGroupIngress` **두 개만**, 리소스는 `launch-wizard-1` 보안그룹 하나의 ARN. 포트까지는 못 좁힌다(IAM 조건 키에 포트가 없음) — 진행상황.md 3-4 의 감수 |
+| IAM 역할 | `ledger-github-deploy` (2026-09-19) | GitHub Actions 가 OIDC 로 맡는 역할. 신뢰 정책은 `repo:devkyumin04/ledger:ref:refs/heads/main` **한 줄만**(PR·포크 불가), 권한은 `ledger-deploy-sg-ssh` 하나. 역할 ARN 은 GitHub Secrets 에 |
 | 예산 알림 | `ledger-monthly` 월 $30 | 실제 85% · 100% 도달, 예상 100% 도달 시 메일. **알림만 — 과금을 멈추지는 않는다** |
 
 아직 없는 것 — 도메인, HTTPS 인증서, S3 버킷, IAM 역할, SES. 각각 진행상황.md 5단계 · Sprint 2 에서.
@@ -178,6 +181,26 @@ journalctl -u ledger --since "10 min ago"
   - "코드가 유효하지 않음" 이 반복되면 휴대폰 시계를 자동 설정으로. 휴대폰을 바꾸기 전에 새 기기로 먼저 옮길 것
 - 루트 계정에 **액세스 키를 만들지 않는다**. CD 나 백업에 AWS 권한이 필요해지면 IAM 역할 · 최소 권한 사용자로 (5단계)
 
+## 비밀 · 식별자 목록표 (2026-09-19)
+
+**값은 없다 — 이름, 어디에 있는지, 무엇을 여는지, 유출되면 무엇을 갈아 끼우는지.** 분류 기준은 CLAUDE.md "값 3단 분류".
+사고가 난 뒤엔 침착하게 찾아볼 여유가 없어서, 교체 절차를 미리 적어 둔다.
+
+| 이름 | 분류 | 있는 곳 | 무엇을 여는가 | 유출·분실 시 |
+|---|---|---|---|---|
+| AWS 루트 비밀번호 + MFA | 비밀 | 암호 관리처 + 폰 OTP | 계정 전체(결제 포함) | 비번 변경 → MFA 재등록 → 모르는 인스턴스·IAM 주체 확인 |
+| `ledger-admin` 개인키(pem) | 비밀 | 맥 `~/.ssh/` | `ubuntu` — sudo 전권 | **재발급 불가.** 새 키쌍 생성 → `ubuntu` 의 `authorized_keys` 교체 → AWS 키 페어 삭제 |
+| `ledger-deploy` 개인키 | 비밀 | 맥 `~/.ssh/` + GitHub Secret `EC2_SSH_KEY` | `deploy` — jar 교체 + `restart` 만 | `ssh-keygen` 새로 → `deploy` 의 `authorized_keys` 교체 → Secret 갱신. 내 접속은 안 끊긴다 |
+| `DB_PASSWORD` (운영) | 비밀 | EC2 `/etc/ledger/ledger.env` + 개인 보관처 | `ledger_db` 전체 | `ALTER USER 'ledger_app'@'localhost' IDENTIFIED BY ...` → `ledger.env` → `restart` |
+| `JWT_SECRET` (운영) | 비밀 | EC2 `ledger.env` | 로그인 토큰 서명(위조 가능해짐) | `openssl rand -base64 48` 새로 → `ledger.env` → `restart`. **전원 재로그인** |
+| `AWS_ROLE_ARN` · `AWS_SG_ID` · `EC2_HOST` | 식별자 | GitHub Secrets + 개인 보관처 | 단독으론 아무것도 못 연다 | 교체 불필요. 공개 로그에 안 찍히게 Secret 에 둔 것 |
+| `AWS_REGION` · `EC2_USER` | 공개 설정 | `ci.yml` 에 그대로 | — | — |
+| CI 일회용 값(`ci_test_password` 등) | 공개 | `ci.yml` | 러너 안 일회용 DB | 해당 없음. **운영 값은 반드시 다르게** |
+| `QA_PASSWORD` | 테스트 | 맥 셸 환경변수 | 로컬 테스트 계정 | — (운영 `test@test.com` 은 공개 전 정리 — 로드맵) |
+
+- 역할 `ledger-github-deploy` 에는 **보관할 비밀이 없다** — OIDC 라 실행마다 1시간짜리 임시 자격을 받는다
+- IAM 사용자는 0명으로 유지한다. 사용자를 만들면 장기 액세스 키가 생길 자리가 생긴다 — AWS 권한이 필요하면 역할로
+
 ## 작업 이력
 
 | 날짜 | 작업 | 누가 |
@@ -194,3 +217,6 @@ journalctl -u ledger --since "10 min ago"
 | 2026-09-18 | 2-5 수동 첫 배포 — jar `scp` → `systemctl start` → Flyway V1 적용(19테이블). 테이블명 대소문자로 1회 실패 후 DB 재생성(ADR-045) · 가입·로그인·거래 확인 · 타임존 3계층 확인 · 재부팅 자동 기동 확인 | 직접 |
 | 2026-09-18 | DBeaver 운영 DB 커넥션 — SSH 터널(pem) + `ledger_app`. 3306 은 열지 않음 | 직접 |
 | 2026-09-18 | 3단계 CD 준비 — 배포 키쌍 `ledger-deploy` 생성 · `deploy` 계정 + `authorized_keys` · `/opt/ledger` 소유권 이전 · sudoers 한 줄(`restart` 만) · 권한 경계 실측(stop·`ledger.env` 거부) | 직접 |
+| 2026-09-19 | 3-4 CD 권한(B안) — IAM **OIDC 공급자** 등록. 배포할 때만 보안 그룹 22번에 러너 IP 를 열고 닫기 위한 권한 준비 | AI 가 콘솔 조작(내장 브라우저) |
+| 2026-09-19 | IAM 정책 `ledger-deploy-sg-ssh` 생성(시각적 편집기, EC2 2작업 + SG ARN 1개) | AI 가 콘솔 조작(내장 브라우저) |
+| 2026-09-19 | IAM 역할 `ledger-github-deploy` 생성 — 웹 자격 증명(OIDC) · main 브랜치 한정 · 정책 1개 연결 | AI 가 콘솔 조작(내장 브라우저) |
