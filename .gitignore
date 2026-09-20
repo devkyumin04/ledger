@@ -42,3 +42,6 @@ out/
 
 ### 로컬 전용 문서 ###
 docs/로컬환경.md
+
+# Claude 데스크톱 앱이 미리보기 파일을 떨어뜨리는 폴더
+Claude outputs/

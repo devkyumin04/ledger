@@ -194,6 +194,7 @@ journalctl -u ledger --since "10 min ago"
 | `DB_PASSWORD` (운영) | 비밀 | EC2 `/etc/ledger/ledger.env` + 개인 보관처 | `ledger_db` 전체 | `ALTER USER 'ledger_app'@'localhost' IDENTIFIED BY ...` → `ledger.env` → `restart` |
 | `JWT_SECRET` (운영) | 비밀 | EC2 `ledger.env` | 로그인 토큰 서명(위조 가능해짐) | `openssl rand -base64 48` 새로 → `ledger.env` → `restart`. **전원 재로그인** |
 | `AWS_ROLE_ARN` · `AWS_SG_ID` · `EC2_HOST` | 식별자 | GitHub Secrets + 개인 보관처 | 단독으론 아무것도 못 연다 | 교체 불필요. 공개 로그에 안 찍히게 Secret 에 둔 것 |
+| `EC2_HOST_KEY` (서버 호스트 공개키) | 식별자 | GitHub Secret. 원본은 서버 `/etc/ssh/ssh_host_ed25519_key.pub`, 사본은 맥 `~/.ssh/known_hosts` | 아무것도 못 연다 — CD 가 "진짜 그 서버인가"를 확인하는 지문 | 따로 보관할 필요 없음(언제든 다시 꺼낼 수 있다). **서버를 새로 만들면 값이 바뀌므로 Secret 갱신** |
 | `AWS_REGION` · `EC2_USER` | 공개 설정 | `ci.yml` 에 그대로 | — | — |
 | CI 일회용 값(`ci_test_password` 등) | 공개 | `ci.yml` | 러너 안 일회용 DB | 해당 없음. **운영 값은 반드시 다르게** |
 | `QA_PASSWORD` | 테스트 | 맥 셸 환경변수 | 로컬 테스트 계정 | — (운영 `test@test.com` 은 공개 전 정리 — 로드맵) |
