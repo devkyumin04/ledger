@@ -69,8 +69,8 @@
 
 | 스크립트 | 용도 |
 |---|---|
-| `qa/_lib.sh` | 공통 헬퍼 — 로그인·요청·판정·초기화 확인. 각 테스트가 첫 줄에서 불러옴 |
-| `qa/test-category-hierarchy.sh` | 카테고리 계층 검증 (12케이스) |
+| `qa/_lib.sh` | 공통 헬퍼 — 로그인·요청·판정·초기화 확인·DB 접속(`qa_mysql`). 각 테스트가 첫 줄에서 불러옴. `summary()` 는 FAIL 이 있으면 종료코드 1 |
+| `qa/test-category-hierarchy.sh` | 카테고리 계층 검증 + 이름 정규화 (21체크) |
 | `qa/test-transaction.sh` | 거래 CRUD (52케이스) |
 | `qa/test-category-transfer.sh` | 카테고리 삭제 시 거래 미분류 이관 (35체크, 부수효과 검사) |
 | `qa/test-statistics.sh` | 개인 통계 최종 API (38체크 — 요약·봉투·추이 일관성, 수입 대비 지출 null/반올림, month 범위 400) |
@@ -92,6 +92,18 @@ sh qa/test-category-hierarchy.sh
 sh qa/test-statistics.sh
 ```
 
+- 비밀번호는 **작은따옴표**로 넣는다 — zsh 는 큰따옴표 안의 `!` 를 히스토리 확장으로 본다 (트러블슈팅 15)
+- `(y/N)` 질문은 입력이 화면에 보인다. 바로 다음에 오는 `Enter password:`(안 보임)와 순서를 헷갈려 비번을 여기에 치지 않게 주의
+
+### CI 게이트 (2026-09-20)
+
+main 에 push 하면 Actions 의 `qa` 잡이 위 스크립트를 **전부** 돌린다 — 러너 안의 일회용 MySQL 8.4 + build 가 만든 jar. 하나라도 실패하면 deploy 가 돌지 않는다 (ADR-042, 진행상황 "4단계 진행 기록").
+
+- 사람 대신 환경변수가 답한다 — `QA_RESET=y`(묻지 않고 초기화) / `QA_DB_HOST`·`QA_DB_USER`·`QA_DB_PASSWORD`(프롬프트 없이 TCP 접속) / `BASE`. 전부 선택이라 로컬 동작은 그대로 (`_lib.sh` 상단 주석)
+- 로컬에서 비대화 모드를 써 보려면 `QA_RESET=n sh qa/test-transaction.sh`
+- **새 스크립트는 `qa/test-*.sh` 이름으로 추가하면 자동으로 게이트에 들어간다.** 마지막 줄은 반드시 `summary` — 종료코드를 내는 곳이 거기다. `summary` 뒤에 둔 명령은 실패 시 실행되지 않는다
+- 러너는 `TZ=Asia/Seoul` 로 돈다. 스크립트에서 `date` 로 오늘·내일을 만들어도 앱(JVM KST)과 어긋나지 않는다
+
 ### 데이터 초기화 후 주의
 
 `reset-all.sql` 로 유저까지 지웠다면 **반드시 회원가입 API 로** 계정을 다시 만든다.
@@ -105,7 +117,7 @@ SQL 로 `users` 에 직접 INSERT 하면 가입 시 자동 생성되는 '미분�
 curl 스크립트는 **API 계층 테스트**다. 실제 HTTP 전 구간(직렬화·인증 필터·상태코드)을
 검증하는 장점이 있지만:
 
-- 서버를 띄워야 해서 CI 에서 자동 실행이 어렵다
+- 서버를 띄워야 해서 CI 에서 돌리려면 DB 컨테이너 + jar 기동 + 헬스 대기가 필요하다 (2026-09-20 `qa` 잡으로 해결 — 대신 배포 1회가 약 1분 길어졌다)
 - DB 에 데이터가 계속 쌓인다
 - 실패했을 때 컨트롤러/서비스/매퍼 중 어디가 문제인지 좁히기 어렵다
 
