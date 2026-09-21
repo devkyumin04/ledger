@@ -14,6 +14,11 @@ async function loadMyInfo() {
 
 loadMyInfo();
 
+// 예시 화면의 막대 너비 — CSP 가 HTML 의 style 속성을 막으므로 JS 로 준다
+document.querySelectorAll('.bar[data-width]').forEach(bar => {
+    bar.style.width = bar.dataset.width + '%';
+});
+
 logoutBtn.addEventListener('click', () => {
     localStorage.removeItem('accessToken');
     window.location.href = '/views/user/login.html';

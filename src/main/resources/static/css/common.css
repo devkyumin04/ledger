@@ -28,7 +28,9 @@
 }
 
 body {
-    font-family: 'Pretendard', sans-serif;
+    /* 기본(시스템) 폰트 — 앞에서부터 그 기기에 있는 첫 폰트를 쓴다. 맥·iOS: 산돌고딕 Neo / 윈도우: 맑은 고딕 / 안드로이드: Noto
+       웹폰트를 안 쓰는 이유: 외부 출처 0(CSP 'self' 만) · 폰트 로딩 대기 0 · 관리할 파일 없음 (2026-09-21, 5-4) */
+    font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Segoe UI', 'Malgun Gothic', 'Noto Sans KR', sans-serif;
     margin: 0;
     padding: 0;
     background: var(--bg);

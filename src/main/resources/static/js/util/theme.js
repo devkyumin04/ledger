@@ -21,3 +21,8 @@ function toggleTheme() {
     document.documentElement.dataset.theme = next;
     localStorage.setItem('theme', next);
 }
+
+// 토글 버튼은 JS 로 연결한다 — CSP 가 HTML 의 onclick 속성을 막는다. 버튼이 없는 페이지는 건너뜀
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('themeToggle')?.addEventListener('click', toggleTheme);
+});

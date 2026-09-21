@@ -81,11 +81,14 @@ function renderTrend(list) {
         div.innerHTML = `
             <span class="trend-label">${m.yearMonth}</span>
             <span class="trend-bars">
-                <span class="bar bar-income" style="width:${m.totalIncome / max * 100}%"></span>
-                <span class="bar bar-expense" style="width:${m.totalExpense / max * 100}%"></span>
+                <span class="bar bar-income"></span>
+                <span class="bar bar-expense"></span>
             </span>
             <span class="trend-balance">${won(m.balance)}</span>
         `;
+        // 너비는 innerHTML 의 style 속성이 아니라 DOM 으로 준다 — CSP 가 인라인 style 속성을 막는다
+        div.querySelector('.bar-income').style.width = `${m.totalIncome / max * 100}%`;
+        div.querySelector('.bar-expense').style.width = `${m.totalExpense / max * 100}%`;
         listEl.appendChild(div);
     });
 }
