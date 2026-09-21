@@ -465,6 +465,25 @@
   - 비밀·식별자 목록표(이름·위치·무엇을 여나·유출 시 교체)는 aws-인프라.md — 사고 뒤엔 찾아볼 여유가 없다
 - **감수** — 식별자까지 가려져 로그로 디버깅하기 불편하다. 필요할 땐 길이·접두만 찍는다 (트러블슈팅 13·14)
 
+### ADR-049. 공개 경계 — Nginx 는 문, 보안 헤더는 Spring, CSP 는 외부 출처 0
+
+- **문제** — 도메인·HTTPS 를 붙이며 "보안 헤더를 어디서 붙이나", "CSP 를 얼마나 여나" 를 정해야 했다. 기획서엔 "헤더 4종은 Nginx 에서" 라고 적혀 있었다
+- **실측이 전제를 바꿨다** — HSTS · `X-Frame-Options: DENY` · `nosniff` 는 **Spring Security 기본값이 이미** 붙이고 있었다(`forward-headers-strategy` 로 https 를 알게 되면서 HSTS 까지). 없는 건 CSP 하나
+- **선택**
+  - **Nginx = 문** — 80→443 / 모르는 이름은 끊기(80 `444`, 443 `ssl_reject_handshake`) / `/actuator` 는 health 만, 나머지 404. 앱이 뭘 하든 바깥에서 안 보여야 하는 것
+  - **Spring = 헤더** — 기본 3종 그대로 + CSP 를 `SecurityConfig` 에. 정책 `default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'`
+  - **인라인 코드 0** — `onclick=`·`style=` 속성을 JS 로 옮긴 뒤 CSP 를 켠다. `'unsafe-inline'`·`'unsafe-eval'`·`*` 는 쓰지 않는다
+  - **웹폰트 없음** — 외부 출처가 Pretendard CDN 하나뿐이었다. 시스템 폰트로 바꿔 외부 출처 0
+- **근거**
+  - CSP 를 Spring 에 둔 이유 — ① 헤더 책임이 한 곳 ② **로컬에서도 같은 CSP 가 걸려** 깨지는 걸 개발 중에 본다(Nginx 에만 두면 운영에서 처음 깨진다) ③ HTML 은 전부 Spring 이 서빙하고, Nginx 가 직접 만드는 응답은 본문 없는 301·404·444 뿐
+  - CSP 는 escapeHtml 을 빠뜨렸을 때의 두 번째 방어선. 토큰이 `localStorage` 에 있어 XSS = 계정 탈취이고, 공동 가계부(Sprint 4)부터는 남이 쓴 값이 내 화면에 그려진다. 브라우저는 우리 인라인과 공격자 인라인을 구분하지 못하므로 우리 것부터 0
+  - 좁게 시작해 기능이 붙을 때 연다(IAM 정책과 같은 방식) — 카카오맵 SDK·S3 이미지가 들어올 때 지시어를 한 줄씩
+  - 웹폰트 대안 — 직접 서빙(파일 2MB + 라이선스 관리) / CDN 버전 고정 + 경로 한정 + SRI. Pretendard 는 애초에 시스템 폰트를 닮게 만든 폰트라 차이는 윈도우(맑은 고딕)에서만 난다. "UI 는 간결하게" + YAGNI
+- **감수**
+  - 윈도우에선 맑은 고딕, 로고의 800 굵기가 700 처럼 보인다
+  - 헤더 3종이 Spring 기본값에 기대고 있다 — `.headers(h -> h.defaultsDisabled())` 같은 변경은 이 결정을 깬다
+  - 게이트(curl)는 CSP 위반을 못 잡는다. 화면을 바꾸면 브라우저로 한 바퀴 (트러블슈팅 16·17 과 같은 날, 공격 흉내로 차단 실측)
+
 ## 공동 가계부 (Sprint 4 예정)
 
 ### ADR-030. 그리디 정산 (완전탐색 아님)

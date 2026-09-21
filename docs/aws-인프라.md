@@ -32,9 +32,11 @@ AWS 콘솔에서 **무엇을 어떤 값으로 만들었고 왜 그랬는지**. �
 | IAM 역할 | `ledger-github-deploy` (2026-09-19, 신뢰 정책 2026-09-20 수정) | GitHub Actions 가 OIDC 로 맡는 역할. 신뢰 정책 `sub` 는 **main 브랜치 두 형태만**(`repo:<OWNER>/<REPO>:ref:refs/heads/main` + 숫자 ID 가 박힌 `repo:<OWNER>@<OWNER_ID>/<REPO>@<REPO_ID>:...`). **실제로 오는 건 ID 형태** — 콘솔이 자동으로 채워주는 이름 형태만 두면 `Not authorized` 로 거절된다(3-6 실측). 권한은 `ledger-deploy-sg-ssh` 하나 |
 | 도메인 | **`dotoree.app`** (2026-09-21, Cloudflare Registrar) | 1년 · 자동 갱신 켬 · 연 $14.20(원가 판매라 갱신가 동일). 네임서버는 Cloudflare 고정(이 등록기관의 조건). **AWS 자원이 아니라 Cloudflare 계정**(2FA TOTP)에 있다. `.app` 은 HSTS preload — 인증서 없이는 브라우저로 안 열린다 |
 | DNS 레코드 | `A @` → 탄력적 IP / `CNAME www` → `dotoree.app` | 둘 다 **DNS only(회색 구름)**. 프록시를 켜면 HTTPS 를 Cloudflare 가 대신 끝내서 Nginx·certbot 이 할 일이 사라지고 인증도 가로막힌다. `www` 를 CNAME 으로 둔 건 IP 가 바뀔 때 A 한 줄만 고치려고(ETC) |
+| Nginx | **1.28.3** (apt, 2026-09-21) | `/etc/nginx/sites-available/ledger`(→ `sites-enabled` 링크). 블록 4개 — 80·443 문지기(모르는 이름은 444 / TLS 거부) · 80→443 · 443→`127.0.0.1:8080`. `/actuator` 는 health 만 통과, 나머지 404. 설치 직후 원본은 `ledger.bak-certbot` |
+| TLS 인증서 | Let's Encrypt, `dotoree.app` + `www` (2026-09-21) | certbot **4.0.0**(apt). `/etc/letsencrypt/live/dotoree.app/`(개인키 root 전용). 90일 — `certbot.timer` 가 만료 30일 이내일 때 갱신. 첫 만료 2026-12-20 |
 | 예산 알림 | `ledger-monthly` 월 $30 | 실제 85% · 100% 도달, 예상 100% 도달 시 메일. **알림만 — 과금을 멈추지는 않는다** |
 
-아직 없는 것 — HTTPS 인증서, S3 버킷, IAM 역할, SES. 각각 진행상황.md 5단계 · Sprint 2 에서.
+아직 없는 것 — S3 버킷, EC2 인스턴스 역할(백업을 S3 로 올릴 권한), SES. 각각 진행상황.md 5단계 · Sprint 2 에서.
 
 ## 비용 (월 추정)
 
@@ -155,6 +157,20 @@ journalctl -u ledger --since "10 min ago"
 - `enable` 은 "부팅 때마다", `start` 는 "지금". 별개다
 - 기동 실패는 `Restart=always` 때문에 5초마다 반복된다 — `status` 에 재시작 횟수가 쌓이면 로그부터 본다
 
+### Nginx · 인증서
+
+```
+sudo nginx -t && sudo systemctl reload nginx   # 설정 고친 뒤 — 검사 통과해야만 reload
+sudo cat /etc/nginx/sites-available/ledger      # 지금 설정
+sudo certbot certificates                       # 인증서·만료일
+sudo certbot renew --dry-run                    # 갱신 리허설 (설정을 손으로 고친 뒤 꼭)
+systemctl list-timers | grep certbot            # 자동 갱신 타이머
+```
+
+- 설정 파일을 채팅·문서에서 복사해 붙였다면 `grep -c '](' /etc/nginx/sites-available/ledger` 가 0 인지 (링크 오염 검사, 트러블슈팅 16)
+- `restart` 가 아니라 `reload` — 연결을 끊지 않는다
+- 인증서가 만료되면 `.app` 은 HSTS preload 라 **브라우저로 아예 안 열린다**. 타이머가 실패했는지부터 `journalctl -u certbot`
+
 ### 요금 확인
 
 과금 정보 및 비용 관리 → 청구서(이번 달 누적) / Cost Explorer(일별). 예산 알림 메일이 오면 먼저 **EC2 대시보드에서 모르는 인스턴스가 떠 있는지**, 리전을 바꿔가며 확인.
@@ -225,3 +241,4 @@ journalctl -u ledger --since "10 min ago"
 | 2026-09-19 | IAM 역할 `ledger-github-deploy` 생성 — 웹 자격 증명(OIDC) · main 브랜치 한정 · 정책 1개 연결 | AI 가 콘솔 조작(내장 브라우저) |
 | 2026-09-20 | `ledger-github-deploy` 신뢰 정책 수정 — `sub` 에 숫자 ID 형태 추가(3-6 실패 원인) | AI 가 콘솔 조작(내장 브라우저) |
 | 2026-09-21 | Cloudflare 가입 · 2FA(TOTP) → `dotoree.app` 구매(1년, 자동 갱신) → DNS `A @` · `CNAME www`(DNS only). `dig +short` 로 두 이름 모두 탄력적 IP 확인 | 직접 (이름 후보 가용성·겹침 검색은 AI) |
+| 2026-09-21 | Nginx 설치 · 설정(80 문지기 · 앱 프록시) → certbot 인증서 발급(`--dry-run` 먼저) · 80→443 → 설정 재작성(443 문지기 · `/actuator` 404) · `renew --dry-run` 재확인 | 직접 (AI 안내) |

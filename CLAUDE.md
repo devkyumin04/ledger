@@ -24,7 +24,7 @@ AI 영수증 인식 및 지도 기반 개인·공동 가계부. 24시간 상시 
 - **프론트** — Vanilla JS(ES6+), HTML5/CSS3, Fetch API, PWA 예정
 - **AI** — 네이버 Clova 일반 OCR + 로컬 LLM(Ollama) + 한국어 문장 임베딩
 - **지도** — 카카오맵 API
-- **인프라** — AWS EC2(ARM t4g · Ubuntu 26.04 LTS. 지금 t4g.small, Ollama 도입 때 t4g.medium) 단일 인스턴스에 Spring Boot + MySQL + 임베딩 모델 (Redis 없음 — 서버 2대부터), S3, Nginx, GitHub Actions
+- **인프라** — AWS EC2(ARM t4g · Ubuntu 26.04 LTS. 지금 t4g.small, Ollama 도입 때 t4g.medium) 단일 인스턴스에 Spring Boot + MySQL + 임베딩 모델 (Redis 없음 — 서버 2대부터), S3, Nginx + Let's Encrypt, GitHub Actions. 도메인 `dotoree.app`(Cloudflare, DNS only)
 
 패키지 루트: `com.kyumin.ledger`
 
@@ -98,6 +98,8 @@ AI 영수증 인식 및 지도 기반 개인·공동 가계부. 24시간 상시 
 - `common.css` 통합 디자인 시스템. 색상은 CSS 변수 (`--bg`, `--text`, `--border`, `--surface`, `--accent`)
 - 다크모드 — OS 설정(`prefers-color-scheme`) 기본값 + 토글 버튼, localStorage 저장
 - UI/UX는 간결하게, 기능 우선
+- **HTML 에 인라인 코드 금지 (CSP, ADR-049)** — `onclick=` 같은 이벤트 속성 → JS 에서 `addEventListener` / `style="…"` 속성 → CSS 클래스나 JS 의 `el.style.x`. `innerHTML` 템플릿 안도 같다. 어기면 **브라우저가 조용히 막는다**(버튼 무반응·스타일 누락, 게이트는 못 잡음)
+- **외부 출처(CDN·SDK·폰트) 추가 = CSP 한 줄 추가** — 지금은 0 개(폰트도 시스템 폰트). 카카오맵 등을 붙일 때 `SecurityConfig` 에 그 지시어만 연다
 
 ### 모양
 
