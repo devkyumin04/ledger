@@ -15,6 +15,7 @@ mybatis:
 
 server:
   port: 8080
+  forward-headers-strategy: native #Nginx 가 붙인 X-Forwarded-Proto/For 를 믿는다(127.0.0.1·사설 IP 에서 온 것만). 프록시 없는 로컬·CI 에선 헤더가 안 와서 효과 없음
 
 jwt:
   secret: ${JWT_SECRET}
