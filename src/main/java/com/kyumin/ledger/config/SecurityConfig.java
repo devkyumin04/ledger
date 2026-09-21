@@ -48,6 +48,12 @@ public class SecurityConfig {
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(ex -> ex.authenticationEntryPoint((request, response, authException) -> {
+                // 화면(html·css·js)은 전부 permitAll 이라, API 가 아닌데 여기까지 왔다면 없는 주소다 → 404 페이지 (ADR-012 의 API/페이지 분리)
+                // sendError 는 /error 로 넘어가 CustomErrorController 가 404.html 을 보여준다. /error 는 /error/** 로 이미 permitAll
+                if (!request.getRequestURI().startsWith("/api/")) {
+                    response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                    return;
+                }
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.setContentType("text/plain;charset=UTF-8");
                 response.getWriter().write("로그인이 필요합니다.");

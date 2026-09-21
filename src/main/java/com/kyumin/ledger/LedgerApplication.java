@@ -4,10 +4,13 @@ import java.util.TimeZone;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration;
 
 import jakarta.annotation.PostConstruct;
 
-@SpringBootApplication
+// 인증은 JWT 필터가 한다 — Spring 이 기본으로 만드는 메모리 사용자(user + 랜덤 비번)는 쓰지 않으므로 끈다.
+// 켜 두면 기동 로그에 "Using generated security password" 가 운영에서도 찍힌다
+@SpringBootApplication(exclude = UserDetailsServiceAutoConfiguration.class)
 public class LedgerApplication {
 
 	public static void main(String[] args) {
