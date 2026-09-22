@@ -34,14 +34,17 @@ AWS 콘솔에서 **무엇을 어떤 값으로 만들었고 왜 그랬는지**. �
 | DNS 레코드 | `A @` → 탄력적 IP / `CNAME www` → `dotoree.app` | 둘 다 **DNS only(회색 구름)**. 프록시를 켜면 HTTPS 를 Cloudflare 가 대신 끝내서 Nginx·certbot 이 할 일이 사라지고 인증도 가로막힌다. `www` 를 CNAME 으로 둔 건 IP 가 바뀔 때 A 한 줄만 고치려고(ETC) |
 | Nginx | **1.28.3** (apt, 2026-09-21) | `/etc/nginx/sites-available/ledger`(→ `sites-enabled` 링크). 블록 4개 — 80·443 문지기(모르는 이름은 444 / TLS 거부) · 80→443 · 443→`127.0.0.1:8080`. `/actuator` 는 health 만 통과, 나머지 404. 설치 직후 원본은 `ledger.bak-certbot` |
 | TLS 인증서 | Let's Encrypt, `dotoree.app` + `www` (2026-09-21) | certbot **4.0.0**(apt). `/etc/letsencrypt/live/dotoree.app/`(개인키 root 전용). 90일 — `certbot.timer` 가 만료 30일 이내일 때 갱신. 첫 만료 2026-12-20 |
-| DB 백업 (로컬) | `/usr/local/sbin/ledger-backup` + `ledger-backup.timer` (2026-09-22) | 매일 **04:00 KST**, `Persistent=true`(꺼져 있던 날은 켜지면 밀린 실행). root 가 `mysqldump --single-transaction`(MySQL root = `auth_socket`, 새 비밀 0개) → gzip → `/var/backups/ledger/`(root 700 · 파일 600). `.tmp` 에 쓰고 검사 두 개(`gzip -t` + 마지막 줄 `-- Dump completed`) 통과해야 `mv`. 보관 **약 7일**(`-mtime +7` 이라 7~8개). 로그 `journalctl -u ledger-backup`. 성공하면 S3 `daily/` 로 업로드(인스턴스 역할, 키 파일 없음) — **업로드가 실패하면 로컬 정리 전에 멈춘다.** 정본은 저장소 `ops/` |
-| 백업 설정 파일 | `/etc/ledger/backup.env` (root 600, 2026-09-22) | `S3_BACKUP_BUCKET` 한 줄(식별자). 값은 손으로 쓰지 않고 `sts get-caller-identity` 로 조립 (트러블슈팅 18) |
+| DB 백업 (로컬) | `/usr/local/sbin/ledger-backup` + `ledger-backup.timer` (2026-09-22) | 매일 **04:00 KST**, `Persistent=true`(꺼져 있던 날은 켜지면 밀린 실행). root 가 `mysqldump --single-transaction`(MySQL root = `auth_socket`, 새 비밀 0개) → gzip → `/var/backups/ledger/`(root 700 · 파일 600). `.tmp` 에 쓰고 검사 두 개(`gzip -t` + 마지막 줄 `-- Dump completed`) 통과해야 `mv`. 보관 **약 7일**(`-mtime +7` 이라 7~8개). 로그 `journalctl -u ledger-backup`. 성공하면 S3 `daily/` 로 업로드(인스턴스 역할, 키 파일 없음) — **업로드가 실패하면 로컬 정리 전에 멈춘다.** 끝나면 성공이든 실패든 Healthchecks `ledger-backup` 에 핑(2026-09-22, ADR-051). 정본은 저장소 `ops/`(sha256 일치 확인) |
+| 백업 설정 파일 | `/etc/ledger/backup.env` (root 600, 2026-09-22) | 세 줄 — `S3_BACKUP_BUCKET`(식별자. 손으로 쓰지 않고 `sts get-caller-identity` 로 조립, 트러블슈팅 18) · `HC_BACKUP_URL` · `HC_CERT_URL`(약한 비밀. `read -s` 로 받아 정규식·길이 검사 후 `tee -a`). 백업·인증서 스크립트가 같이 읽는다 |
 | AWS CLI | `aws-cli` **2.35.21** (snap, `aws✓` 게시자, classic, 2026-09-22) | Ubuntu 26.04 apt 에 v2 가 없어 snap(AWS 공식, 자동 업데이트). **`/snap/bin/aws` 전체 경로로** — systemd PATH 에 `/snap/bin` 이 없다. `~/.aws` 없음 = 키 파일 없이 역할로 인증 |
 | S3 버킷 (백업) | `<S3_BACKUP_BUCKET>` (2026-09-22) | 서울 · 범용 · **계정 리전 네임스페이스**(이름 끝에 계정 ID·리전·`-an` — 우리 계정만 이 이름을 만들 수 있고 지워도 남이 못 가져간다. 그래서 랜덤 접미사 없음) · 퍼블릭 액세스 차단 4개 전부 · ACL 비활성화 · **버전 관리 ON**(덮어쓰기로 백업을 없애는 것 차단) · SSE-S3 · 객체 잠금 OFF · 태그 없음. 이름은 식별자(ADR-048) — 실제 값은 개인 보관처 · EC2 `backup.env` |
 | S3 수명 주기 규칙 | `daily-expire` (2026-09-22) | 범위 접두사 `daily/` 만(다른 폴더는 따로 규칙) · 현재 버전 **30일** 만료 · 이전 버전 **7일** 뒤 영구 삭제(보관할 버전 수 비움) · 불완전 멀티파트 7일 삭제. 평소 파일 수명 최대 37일. "만료된 삭제 마커 삭제"는 현재 버전 만료와 같이 못 고른다(콘솔이 막음) |
 | IAM 정책 | `ledger-backup-s3-put` (2026-09-22) | `s3:PutObject` **하나만**, 리소스 `arn:aws:s3:::<S3_BACKUP_BUCKET>/daily/*`. 읽기·목록·삭제 없음 — 서버가 털려도 백업을 꺼내거나 지울 수 없다. `ListBucket` 은 올리기에 필요 없어 뺐다 |
 | IAM 역할 (인스턴스) | `ledger-prod-ec2` (2026-09-22) | 신뢰 주체 `ec2.amazonaws.com`, 권한 `ledger-backup-s3-put` 하나. `ledger-prod` 에 연결(재시작 없음). **이름은 인스턴스 기준** — EC2 한 대엔 역할이 하나뿐이라, SES 등 권한이 늘면 새 역할이 아니라 이 역할에 정책을 추가(정책 = 일 단위). 같은 이름의 인스턴스 프로파일은 콘솔이 자동 생성 |
 | 인스턴스 메타데이터 | **IMDSv2 Required** (2026-09-22 확인) | 역할의 임시 자격 증명을 받는 경로. v1 이면 앱의 SSRF 하나로 자격 증명이 밖으로 샌다 — 역할을 붙이는 순간부터 중요해져서 확인 |
+| 인증서 검사 | `/usr/local/sbin/ledger-certcheck` + `ledger-certcheck.timer` (2026-09-22) | 매일 **09:00 KST**, `Persistent`. `openssl s_client` 로 `127.0.0.1:443`(SNI `dotoree.app`)에 붙어 **지금 내보내는 인증서**의 남은 날짜 → 21일 초과면 Healthchecks `ledger-cert` 에 `/0`, 아니면 `/1`(본문에 N days left). 로그 `journalctl -u ledger-certcheck`. 정본은 저장소 `ops/` (ADR-051) |
+| 외부 감시 | **UptimeRobot** 무료 (2026-09-22, AWS 밖) | 키워드 모니터 `ledger-health` — `https://dotoree.app/actuator/health` 본문에 `"status":"UP"` 이 **없으면** DOWN, 5분 간격, 북미에서. 알림 이메일만. SSL 만료·heartbeat·상태 코드 선택은 유료라 안 씀(트러블슈팅 20). 계정 2FA(TOTP) |
+| 작업 감시 | **Healthchecks.io** 무료 (2026-09-22, AWS 밖) | 체크 `ledger-backup` · `ledger-cert` — 둘 다 Period 1일 + Grace 1시간, 알림 이메일. 실패 핑은 즉시, 무응답은 25시간 뒤 메일. 계정 2FA(TOTP, 복구 코드 없음), 시간대 Asia/Seoul |
 | 예산 알림 | `ledger-monthly` 월 $30 | 실제 85% · 100% 도달, 예상 100% 도달 시 메일. **알림만 — 과금을 멈추지는 않는다** |
 
 아직 없는 것 — SES (Sprint 1 이메일 인증 때). 각각 진행상황.md 5단계 · Sprint 2 에서.
@@ -89,7 +92,13 @@ AWS 콘솔에서 **무엇을 어떤 값으로 만들었고 왜 그랬는지**. �
 ssh -i <PEM_PATH> ubuntu@<EC2_HOST>
 ```
 
-`~/.ssh/config` 에 `Host ledger` 로 등록해 두면 `ssh ledger`. 이 파일은 저장소 밖이라 IP 를 적어도 된다.
+실제로는 `~/private/` 의 서버 접속 `.command`(더블클릭하면 위 명령이 실행된다)로 접속한다. `~/.ssh/config` 에 `Host` 는 등록하지 않았다(2026-09-22 확인) — 그래서 파일 전송도 이름 대신 직접 지정한다:
+
+```
+scp -i ~/.ssh/ledger-admin.pem <파일…> ubuntu@<EC2_HOST>:/tmp/     # 맥에서. 서버에선 sudo install 로 제자리에
+```
+
+자주 쓰게 되면 `~/.ssh/config` 에 `Host ledger`(HostName · User · IdentityFile · `IdentitiesOnly yes`)를 등록해 `ssh ledger` / `scp … ledger:` 로 줄인다. 저장소 밖이라 IP 를 적어도 된다.
 
 | 증상 | 원인 | 해결 |
 |---|---|---|
@@ -190,6 +199,14 @@ sudo systemctl start ledger-backup.service    # 지금 한 번 (systemd 경유 �
 
 - S3 쪽은 **서버에서 볼 수 없다**(역할에 목록·읽기 권한이 없음 — 의도). 콘솔 → 버킷 → `daily/` 에서 루트로 확인
 - 스크립트를 고칠 땐 저장소 `ops/` 를 고치고 서버에 같은 내용으로 설치 → `sudo bash -n /usr/local/sbin/ledger-backup` → `systemctl start` 로 1회
+  ```
+  # 맥 (저장소 폴더)
+  scp -i ~/.ssh/ledger-admin.pem ops/<파일…> ubuntu@<EC2_HOST>:/tmp/
+  # 서버 — 스크립트 700, 유닛 644
+  sudo install -o root -g root -m 700 /tmp/ledger-backup /usr/local/sbin/ledger-backup && rm /tmp/ledger-backup
+  sudo sha256sum /usr/local/sbin/ledger-backup | cut -c1-12      # 맥: shasum -a 256 < ops/ledger-backup | cut -c1-12 와 같아야 한다
+  ```
+  `sudo sha256sum < 파일` 은 안 된다 — 리다이렉트는 sudo 밖에서 열린다(트러블슈팅 21)
 
 **복구 — 서버가 살아 있을 때 (로컬 사본)**
 
@@ -213,6 +230,24 @@ sudo systemctl start ledger
 3. 새 서버에 `scp` 로 올려 위 절차. 받은 덤프엔 이메일·비번 해시가 있다 — **끝나면 지운다**
 - 누가 덮어썼다면 — `daily/` 에서 **버전 표시** 를 켜고 이전 버전을 받는다(이전 버전은 7일 보관)
 - 리허설 2026-09-22 — S3 → 맥 `ledger_restore_test`, 19테이블 `COUNT(*)` 운영과 일치 (진행상황.md 5-5 의 쿼리)
+
+### 감시 (UptimeRobot · Healthchecks.io)
+
+```
+systemctl list-timers ledger-backup.timer ledger-certcheck.timer   # 다음 실행 04:00 · 09:00
+journalctl -u ledger-certcheck -n 5 -o cat                          # cert ok: N days left / cert FAILED: …
+sudo systemctl start ledger-certcheck.service                       # 지금 한 번
+```
+
+- **알림 메일이 오면** — `DOWN | ledger-health` → 앱·Nginx(`systemctl status ledger nginx`, `journalctl -u ledger -n 50`) / `DOWN | ledger-backup` → `journalctl -u ledger-backup -n 20` / `DOWN | ledger-cert` → `sudo certbot renew --dry-run` · `journalctl -u certbot` · 갱신됐는데 옛 인증서면 `sudo systemctl reload nginx`
+- **서버를 오래 끌 때** — UptimeRobot 모니터 Pause + Healthchecks 체크 Pause. 안 하면 DOWN 메일이 온다
+- 핑 URL 을 바꿔야 하면(유출·계정 재생성) — Healthchecks 에서 체크를 새로 만들고 서버에서:
+  ```
+  sudo sed -i '/^HC_BACKUP_URL=/d' /etc/ledger/backup.env
+  read -rsp 'URL: ' U; echo; [[ "$U" =~ ^https://hc-ping\.com/[0-9a-f-]{36}$ ]] && printf 'HC_BACKUP_URL=%s\n' "$U" | sudo tee -a /etc/ledger/backup.env >/dev/null; unset U
+  ```
+  명령 안에 URL 을 쓰지 않는다 — 프롬프트가 뜬 뒤 붙여넣는다(셸 기록에 안 남게)
+- 실패 알림 실측(2026-09-22) — 덤프 앞에 `false &&` 를 끼운 `/tmp` 사본을 실행 → DOWN 메일 → 진짜 백업 → UP 메일. 절차는 진행상황.md 5-6
 
 ### 요금 확인
 
@@ -259,6 +294,8 @@ sudo systemctl start ledger
 | `AWS_REGION` · `EC2_USER` | 공개 설정 | `ci.yml` 에 그대로 | — | — |
 | CI 일회용 값(`ci_test_password` 등) | 공개 | `ci.yml` | 러너 안 일회용 DB | 해당 없음. **운영 값은 반드시 다르게** |
 | `S3_BACKUP_BUCKET` | 식별자 | EC2 `/etc/ledger/backup.env`(root 600) + 개인 보관처 | 단독으론 아무것도 못 연다. 서버 역할도 이 버킷엔 올리기만 | 교체 불필요. 버킷을 새로 만들면 파일 한 줄 갱신 — 손으로 쓰지 말고 조립(트러블슈팅 18) |
+| `HC_BACKUP_URL` · `HC_CERT_URL` (Healthchecks 핑 URL) | **약한 비밀** | EC2 `/etc/ledger/backup.env`(root 600) + Healthchecks 대시보드(정본). 개인 보관처엔 두지 않는다 | 알림만 — 아는 사람이 "성공" 핑을 보내 멈춘 백업·인증서 알림을 끌 수 있다. 백업·S3 는 못 건드린다 | Healthchecks 에서 체크를 새로 만들어 URL 교체 → `backup.env` 한 줄 교체(위 "감시") → 옛 체크 삭제 |
+| UptimeRobot · Healthchecks.io 계정 | 비밀 | 매직 링크(= 메일함) + 2FA TOTP(폰). Healthchecks 는 복구 코드가 없어 QR 캡처를 개인 보관처에 | 모니터·체크를 지워 알림을 끌 수 있다 | 2FA 분실 시 — UptimeRobot 은 모니터 1개 재생성 / Healthchecks 는 새 계정 → 체크 2개 → `backup.env` 두 줄 교체(약 15분) |
 | `QA_PASSWORD` | 테스트 | 맥 셸 환경변수 | 로컬 테스트 계정 | — (운영 `test@test.com` 은 공개 전 정리 — 로드맵) |
 
 - 역할 `ledger-github-deploy` 에는 **보관할 비밀이 없다** — OIDC 라 실행마다 1시간짜리 임시 자격을 받는다. `ledger-prod-ec2` 도 같다 — 인스턴스 메타데이터(IMDSv2)에서 임시 자격을 받는다
@@ -289,3 +326,5 @@ sudo systemctl start ledger
 | 2026-09-22 | DB 백업 로컬판 — 스크립트 `ledger-backup`(root·`auth_socket`) · 수동 실행(19테이블 · `Dump completed`) · 완료 검사 추가 후 **잘린 덤프 흉내로 차단 실측**(`gzip -t` 는 통과, 완료 검사가 잡음) · systemd 타이머 `enable --now`(NEXT 04:00) · `systemctl start` 로 1회 성공 | 직접 (AI 안내) |
 | 2026-09-22 | S3 백업 버킷 생성(계정 리전 네임스페이스 · 버전 관리 · 퍼블릭 차단) → 수명 주기 `daily-expire` → IAM 정책 `ledger-backup-s3-put` → 역할 `ledger-prod-ec2` → `ledger-prod` 에 연결 · IMDSv2 Required 확인 | 직접 (AI 안내, Safari 화면으로 저장 전 확인) |
 | 2026-09-22 | AWS CLI(snap) · 역할로 인증 확인(`assumed-role/ledger-prod-ec2`, 키 파일 없음) → `backup.env` → 스크립트에 S3 업로드 추가 · systemd 로 1회 성공 → **권한 실측 6종**(목록·읽기·삭제·`daily/` 밖 쓰기 거부 / `daily/` 쓰기·덮어쓰기 허용 → 콘솔 "버전 표시"로 이전 버전 보존 확인) → **복구 리허설**(S3 → 맥, 19테이블 행 수 일치) | 직접 (AI 안내) |
+| 2026-09-22 | 5-6 감시 — UptimeRobot 가입·2FA → 키워드 모니터 `ledger-health`(HTTP 모니터에서 교체, SSL·heartbeat·상태 코드는 유료라 확인 후 포기) · Healthchecks.io 가입·2FA·시간대 → 체크 `ledger-backup`·`ledger-cert`(1일 + 1시간) · Gmail 필터 2개 | 직접 (AI 안내, 필터·시간대는 AI 가 내장 브라우저로) |
+| 2026-09-22 | `backup.env` 에 `HC_BACKUP_URL`·`HC_CERT_URL`(`read -s` → 형식 검사) → `ops/` 스크립트 설치(`ledger-backup` 교체 + `ledger-certcheck`·유닛 2개, sha256 일치) → `enable --now ledger-certcheck.timer` → 1회 실행 두 체크 up → **실패 흉내로 DOWN·UP 메일 실측** | 직접 (AI 안내) |
