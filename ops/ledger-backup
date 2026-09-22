@@ -1,0 +1,29 @@
+#!/bin/bash
+# ledger_db 일 1회 백업 → 로컬 약 7일 + S3 daily/ (수명 주기 30일 + 이전 버전 7일). ADR-050
+# 정본은 저장소 ops/. 서버 설치 위치 /usr/local/sbin/ledger-backup (root:root 700), 실행은 ledger-backup.timer
+# root 로 실행 (MySQL root = auth_socket, S3 = 인스턴스 역할 ledger-prod-ec2. 키 파일 없음)
+set -euo pipefail
+umask 077
+
+source /etc/ledger/backup.env   # S3_BACKUP_BUCKET (식별자라 저장소 밖, ADR-048)
+
+AWS=/snap/bin/aws                # systemd PATH 에 /snap/bin 이 없다
+REGION=ap-northeast-2
+DIR=/var/backups/ledger
+KEEP_DAYS=7                      # -mtime +7 이라 실제로는 7~8개 (진행상황 5-5)
+NAME="ledger_db-$(date +%Y%m%d-%H%M%S).sql.gz"
+OUT="$DIR/$NAME"
+
+trap 'rm -f "$OUT.tmp"' EXIT
+
+mysqldump --single-transaction --routines --triggers --events ledger_db | gzip > "$OUT.tmp"
+gzip -t "$OUT.tmp"
+zcat "$OUT.tmp" | tail -1 | grep -q "^-- Dump completed" || { echo "backup FAILED: dump incomplete" >&2; exit 1; }
+mv "$OUT.tmp" "$OUT"
+
+# 업로드가 실패하면 여기서 멈춘다 — 로컬 정리(find)를 건너뛰어 옛 사본도 남는다
+"$AWS" s3 cp "$OUT" "s3://$S3_BACKUP_BUCKET/daily/$NAME" --region "$REGION" --only-show-errors \
+  || { echo "backup FAILED: upload (local copy kept: $OUT)" >&2; exit 1; }
+
+find "$DIR" -name 'ledger_db-*.sql.gz' -mtime +"$KEEP_DAYS" -delete
+echo "backup ok: $OUT ($(stat -c %s "$OUT") bytes) -> s3 daily/$NAME"

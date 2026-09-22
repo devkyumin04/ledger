@@ -34,9 +34,17 @@ AWS 콘솔에서 **무엇을 어떤 값으로 만들었고 왜 그랬는지**. �
 | DNS 레코드 | `A @` → 탄력적 IP / `CNAME www` → `dotoree.app` | 둘 다 **DNS only(회색 구름)**. 프록시를 켜면 HTTPS 를 Cloudflare 가 대신 끝내서 Nginx·certbot 이 할 일이 사라지고 인증도 가로막힌다. `www` 를 CNAME 으로 둔 건 IP 가 바뀔 때 A 한 줄만 고치려고(ETC) |
 | Nginx | **1.28.3** (apt, 2026-09-21) | `/etc/nginx/sites-available/ledger`(→ `sites-enabled` 링크). 블록 4개 — 80·443 문지기(모르는 이름은 444 / TLS 거부) · 80→443 · 443→`127.0.0.1:8080`. `/actuator` 는 health 만 통과, 나머지 404. 설치 직후 원본은 `ledger.bak-certbot` |
 | TLS 인증서 | Let's Encrypt, `dotoree.app` + `www` (2026-09-21) | certbot **4.0.0**(apt). `/etc/letsencrypt/live/dotoree.app/`(개인키 root 전용). 90일 — `certbot.timer` 가 만료 30일 이내일 때 갱신. 첫 만료 2026-12-20 |
+| DB 백업 (로컬) | `/usr/local/sbin/ledger-backup` + `ledger-backup.timer` (2026-09-22) | 매일 **04:00 KST**, `Persistent=true`(꺼져 있던 날은 켜지면 밀린 실행). root 가 `mysqldump --single-transaction`(MySQL root = `auth_socket`, 새 비밀 0개) → gzip → `/var/backups/ledger/`(root 700 · 파일 600). `.tmp` 에 쓰고 검사 두 개(`gzip -t` + 마지막 줄 `-- Dump completed`) 통과해야 `mv`. 보관 **약 7일**(`-mtime +7` 이라 7~8개). 로그 `journalctl -u ledger-backup`. 성공하면 S3 `daily/` 로 업로드(인스턴스 역할, 키 파일 없음) — **업로드가 실패하면 로컬 정리 전에 멈춘다.** 정본은 저장소 `ops/` |
+| 백업 설정 파일 | `/etc/ledger/backup.env` (root 600, 2026-09-22) | `S3_BACKUP_BUCKET` 한 줄(식별자). 값은 손으로 쓰지 않고 `sts get-caller-identity` 로 조립 (트러블슈팅 18) |
+| AWS CLI | `aws-cli` **2.35.21** (snap, `aws✓` 게시자, classic, 2026-09-22) | Ubuntu 26.04 apt 에 v2 가 없어 snap(AWS 공식, 자동 업데이트). **`/snap/bin/aws` 전체 경로로** — systemd PATH 에 `/snap/bin` 이 없다. `~/.aws` 없음 = 키 파일 없이 역할로 인증 |
+| S3 버킷 (백업) | `<S3_BACKUP_BUCKET>` (2026-09-22) | 서울 · 범용 · **계정 리전 네임스페이스**(이름 끝에 계정 ID·리전·`-an` — 우리 계정만 이 이름을 만들 수 있고 지워도 남이 못 가져간다. 그래서 랜덤 접미사 없음) · 퍼블릭 액세스 차단 4개 전부 · ACL 비활성화 · **버전 관리 ON**(덮어쓰기로 백업을 없애는 것 차단) · SSE-S3 · 객체 잠금 OFF · 태그 없음. 이름은 식별자(ADR-048) — 실제 값은 개인 보관처 · EC2 `backup.env` |
+| S3 수명 주기 규칙 | `daily-expire` (2026-09-22) | 범위 접두사 `daily/` 만(다른 폴더는 따로 규칙) · 현재 버전 **30일** 만료 · 이전 버전 **7일** 뒤 영구 삭제(보관할 버전 수 비움) · 불완전 멀티파트 7일 삭제. 평소 파일 수명 최대 37일. "만료된 삭제 마커 삭제"는 현재 버전 만료와 같이 못 고른다(콘솔이 막음) |
+| IAM 정책 | `ledger-backup-s3-put` (2026-09-22) | `s3:PutObject` **하나만**, 리소스 `arn:aws:s3:::<S3_BACKUP_BUCKET>/daily/*`. 읽기·목록·삭제 없음 — 서버가 털려도 백업을 꺼내거나 지울 수 없다. `ListBucket` 은 올리기에 필요 없어 뺐다 |
+| IAM 역할 (인스턴스) | `ledger-prod-ec2` (2026-09-22) | 신뢰 주체 `ec2.amazonaws.com`, 권한 `ledger-backup-s3-put` 하나. `ledger-prod` 에 연결(재시작 없음). **이름은 인스턴스 기준** — EC2 한 대엔 역할이 하나뿐이라, SES 등 권한이 늘면 새 역할이 아니라 이 역할에 정책을 추가(정책 = 일 단위). 같은 이름의 인스턴스 프로파일은 콘솔이 자동 생성 |
+| 인스턴스 메타데이터 | **IMDSv2 Required** (2026-09-22 확인) | 역할의 임시 자격 증명을 받는 경로. v1 이면 앱의 SSRF 하나로 자격 증명이 밖으로 샌다 — 역할을 붙이는 순간부터 중요해져서 확인 |
 | 예산 알림 | `ledger-monthly` 월 $30 | 실제 85% · 100% 도달, 예상 100% 도달 시 메일. **알림만 — 과금을 멈추지는 않는다** |
 
-아직 없는 것 — S3 버킷, EC2 인스턴스 역할(백업을 S3 로 올릴 권한), SES. 각각 진행상황.md 5단계 · Sprint 2 에서.
+아직 없는 것 — SES (Sprint 1 이메일 인증 때). 각각 진행상황.md 5단계 · Sprint 2 에서.
 
 ## 비용 (월 추정)
 
@@ -171,6 +179,41 @@ systemctl list-timers | grep certbot            # 자동 갱신 타이머
 - `restart` 가 아니라 `reload` — 연결을 끊지 않는다
 - 인증서가 만료되면 `.app` 은 HSTS preload 라 **브라우저로 아예 안 열린다**. 타이머가 실패했는지부터 `journalctl -u certbot`
 
+### DB 백업 · 복구
+
+```
+systemctl list-timers ledger-backup.timer     # 다음 실행(매일 04:00)
+journalctl -u ledger-backup -n 20             # 최근 결과 — backup ok / backup FAILED: …
+sudo ls -l /var/backups/ledger/               # 로컬 사본(약 7일)
+sudo systemctl start ledger-backup.service    # 지금 한 번 (systemd 경유 — 타이머와 같은 환경)
+```
+
+- S3 쪽은 **서버에서 볼 수 없다**(역할에 목록·읽기 권한이 없음 — 의도). 콘솔 → 버킷 → `daily/` 에서 루트로 확인
+- 스크립트를 고칠 땐 저장소 `ops/` 를 고치고 서버에 같은 내용으로 설치 → `sudo bash -n /usr/local/sbin/ledger-backup` → `systemctl start` 로 1회
+
+**복구 — 서버가 살아 있을 때 (로컬 사본)**
+
+```
+sudo systemctl stop ledger
+sudo /usr/local/sbin/ledger-backup                        # 망가진 지금 상태도 한 벌 떠 둔다(원인 조사용)
+sudo mysql -e "DROP DATABASE ledger_db; CREATE DATABASE ledger_db"
+sudo zcat /var/backups/ledger/<파일>.sql.gz | sudo mysql ledger_db
+sudo systemctl start ledger
+```
+
+- `ledger_app` 의 `ledger_db.*` 권한은 DB 를 지웠다 만들어도 남는다(권한은 `mysql.db` 에 있다). `flyway_schema_history` 도 덤프에 들어 있어 앱이 그대로 뜬다
+- 덤프는 `--databases` 없이 떠서 `CREATE DATABASE`·`USE` 가 없다 → **아무 이름의 DB 에나 부을 수 있다**(리허설은 `ledger_restore_test`)
+
+**복구 — 서버가 없을 때 (S3)**
+
+1. 루트 콘솔 → S3 → 버킷 → `daily/` → 파일 체크 → 다운로드
+2. **Safari 는 받자마자 `.gz` 를 풀어 `.sql` 로 저장한다**(트러블슈팅 19). `ls` 로 확장자부터 보고
+   - `.sql` 이면 `tail -1` 이 `-- Dump completed on …` 인지 확인 → `mysql … < 파일.sql`
+   - `.sql.gz` 면 `gzip -t` → `gunzip -c 파일 | mysql …`
+3. 새 서버에 `scp` 로 올려 위 절차. 받은 덤프엔 이메일·비번 해시가 있다 — **끝나면 지운다**
+- 누가 덮어썼다면 — `daily/` 에서 **버전 표시** 를 켜고 이전 버전을 받는다(이전 버전은 7일 보관)
+- 리허설 2026-09-22 — S3 → 맥 `ledger_restore_test`, 19테이블 `COUNT(*)` 운영과 일치 (진행상황.md 5-5 의 쿼리)
+
 ### 요금 확인
 
 과금 정보 및 비용 관리 → 청구서(이번 달 누적) / Cost Explorer(일별). 예산 알림 메일이 오면 먼저 **EC2 대시보드에서 모르는 인스턴스가 떠 있는지**, 리전을 바꿔가며 확인.
@@ -215,9 +258,10 @@ systemctl list-timers | grep certbot            # 자동 갱신 타이머
 | `EC2_HOST_KEY` (서버 호스트 공개키) | 식별자 | GitHub Secret. 원본은 서버 `/etc/ssh/ssh_host_ed25519_key.pub`, 사본은 맥 `~/.ssh/known_hosts` | 아무것도 못 연다 — CD 가 "진짜 그 서버인가"를 확인하는 지문 | 따로 보관할 필요 없음(언제든 다시 꺼낼 수 있다). **서버를 새로 만들면 값이 바뀌므로 Secret 갱신** |
 | `AWS_REGION` · `EC2_USER` | 공개 설정 | `ci.yml` 에 그대로 | — | — |
 | CI 일회용 값(`ci_test_password` 등) | 공개 | `ci.yml` | 러너 안 일회용 DB | 해당 없음. **운영 값은 반드시 다르게** |
+| `S3_BACKUP_BUCKET` | 식별자 | EC2 `/etc/ledger/backup.env`(root 600) + 개인 보관처 | 단독으론 아무것도 못 연다. 서버 역할도 이 버킷엔 올리기만 | 교체 불필요. 버킷을 새로 만들면 파일 한 줄 갱신 — 손으로 쓰지 말고 조립(트러블슈팅 18) |
 | `QA_PASSWORD` | 테스트 | 맥 셸 환경변수 | 로컬 테스트 계정 | — (운영 `test@test.com` 은 공개 전 정리 — 로드맵) |
 
-- 역할 `ledger-github-deploy` 에는 **보관할 비밀이 없다** — OIDC 라 실행마다 1시간짜리 임시 자격을 받는다
+- 역할 `ledger-github-deploy` 에는 **보관할 비밀이 없다** — OIDC 라 실행마다 1시간짜리 임시 자격을 받는다. `ledger-prod-ec2` 도 같다 — 인스턴스 메타데이터(IMDSv2)에서 임시 자격을 받는다
 - IAM 사용자는 0명으로 유지한다. 사용자를 만들면 장기 액세스 키가 생길 자리가 생긴다 — AWS 권한이 필요하면 역할로
 
 ## 작업 이력
@@ -242,3 +286,6 @@ systemctl list-timers | grep certbot            # 자동 갱신 타이머
 | 2026-09-20 | `ledger-github-deploy` 신뢰 정책 수정 — `sub` 에 숫자 ID 형태 추가(3-6 실패 원인) | AI 가 콘솔 조작(내장 브라우저) |
 | 2026-09-21 | Cloudflare 가입 · 2FA(TOTP) → `dotoree.app` 구매(1년, 자동 갱신) → DNS `A @` · `CNAME www`(DNS only). `dig +short` 로 두 이름 모두 탄력적 IP 확인 | 직접 (이름 후보 가용성·겹침 검색은 AI) |
 | 2026-09-21 | Nginx 설치 · 설정(80 문지기 · 앱 프록시) → certbot 인증서 발급(`--dry-run` 먼저) · 80→443 → 설정 재작성(443 문지기 · `/actuator` 404) · `renew --dry-run` 재확인 | 직접 (AI 안내) |
+| 2026-09-22 | DB 백업 로컬판 — 스크립트 `ledger-backup`(root·`auth_socket`) · 수동 실행(19테이블 · `Dump completed`) · 완료 검사 추가 후 **잘린 덤프 흉내로 차단 실측**(`gzip -t` 는 통과, 완료 검사가 잡음) · systemd 타이머 `enable --now`(NEXT 04:00) · `systemctl start` 로 1회 성공 | 직접 (AI 안내) |
+| 2026-09-22 | S3 백업 버킷 생성(계정 리전 네임스페이스 · 버전 관리 · 퍼블릭 차단) → 수명 주기 `daily-expire` → IAM 정책 `ledger-backup-s3-put` → 역할 `ledger-prod-ec2` → `ledger-prod` 에 연결 · IMDSv2 Required 확인 | 직접 (AI 안내, Safari 화면으로 저장 전 확인) |
+| 2026-09-22 | AWS CLI(snap) · 역할로 인증 확인(`assumed-role/ledger-prod-ec2`, 키 파일 없음) → `backup.env` → 스크립트에 S3 업로드 추가 · systemd 로 1회 성공 → **권한 실측 6종**(목록·읽기·삭제·`daily/` 밖 쓰기 거부 / `daily/` 쓰기·덮어쓰기 허용 → 콘솔 "버전 표시"로 이전 버전 보존 확인) → **복구 리허설**(S3 → 맥, 19테이블 행 수 일치) | 직접 (AI 안내) |
