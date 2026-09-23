@@ -221,7 +221,7 @@
 - **대안** — UTC 저장 + 표시 시 변환 / 코드마다 `ZoneId` 명시 / JVM 기본값 고정
 - **선택** — JVM 기본값 고정
 - **근거** — 국내 전용 서비스이고 `TRANS_DATE`가 시각 없는 `DATE`라 UTC 변환은 오버엔지니어링. 고정하면 `@PastOrPresent`가 별도 코드 없이 정확해짐
-- **구현** — `LedgerApplication`에 `@PostConstruct` + `TimeZone.setDefault(...)`.
+- **구현** — `DotoreeApplication`(옛 `LedgerApplication`)에 `@PostConstruct` + `TimeZone.setDefault(...)`.
   `-Duser.timezone` 플래그는 IDE·gradle·test·CI·systemd 다섯 군데에 따로 걸어야 하고
   빠뜨려도 에러 없이 오전 9시 이전 거래만 조용히 400이 난다 (`-parameters` 와 같은 실패 구조, 트러블슈팅 1).
   `main()` 안에서 설정하는 방법은 테스트가 `main()`을 거치지 않아 **테스트만 다른 타임존**이 되므로 탈락.
@@ -573,6 +573,20 @@
 - **근거** — 실무 표준(expand → migrate → contract). 롤백을 "jar 한 줄 교체"로 유지할 수 있다
 - **감수** — 컬럼 삭제가 배포 두 번에 걸친다. V2 는 추가만이라 해당 없음
 - 로드맵 6번 해소 (원래 "Sprint 2 스키마 변경 직전" — 탈퇴 기능으로 V2 가 먼저 왔다)
+
+### ADR-054. 프로젝트 이름 — 코드·빌드는 `dotoree`, 인프라는 `ledger` 를 내부 코드명으로
+
+- **문제** — 화면 이름은 도토리(5-1 도메인)인데 코드·서버·AWS 는 `ledger`. 어디까지 바꿀지 층마다 비용이 다르다
+  - ① 문서 표기 ② 자바 패키지·빌드 이름 ③ GitHub 저장소 ④ 서버(systemd·`/opt`·`/etc`·계정·ops/) ⑤ DB(`ledger_db`·`ledger_app`) ⑥ AWS·외부(인스턴스·IAM·S3·감시 이름)
+- **선택** — **①② 만** (2026-09-23). 패키지 `com.kyumin.dotoree`, `DotoreeApplication`, `rootProject.name = 'dotoree'`, 설정 키 `dotoree.purge.cron`(CI `DOTOREE_PURGE_CRON`). ③~⑥ 은 `ledger` 를 **내부 코드명**으로 유지
+- **근거**
+  - ①② 는 게이트(192)로 검증되고 서버를 건드리지 않는다 — jar 는 `*-SNAPSHOT.jar` 글롭으로 집어 서버에서 `ledger.jar` 로 이름을 바꿔 놓는다
+  - ③~⑥ 은 사용자 눈에 안 보이는데 비용이 크다 — 운영 중단, sudoers 문자열 매칭·유닛·백업 스크립트 재설치, DB 덤프 → 복원(이름 변경 명령이 없다), IAM·S3 는 이름 변경이 없어 새로 만들어 교체
+  - 실무에서도 서비스 이름과 내부 코드명이 다른 경우는 흔하다. 바꾸는 날이 오면(서버를 새로 만들 때 등) 그때 새 이름으로 만든다
+  - Refresh 토큰 전에 했다 — 새 클래스를 옛 패키지에 만들었다가 옮기지 않게
+- **감수** — 한 프로젝트에 이름이 둘이다. 규칙: **코드 안은 `dotoree`, 코드 밖(저장소·서버·DB·AWS)은 `ledger`**
+- **저장소 이름을 바꾸게 되면 주의** — OIDC `sub` 는 숫자 ID 형태에도 이름이 들어 있다(`repo:<OWNER>@<OWNER_ID>/<REPO>@<REPO_ID>:…`, 3-6 실측). 이름을 바꾸면 두 형태 모두 안 맞아 deploy 가 `Not authorized` 로 멈춘다 → 신뢰 정책에 새 이름을 **먼저 추가**하고 바꾼 뒤 옛 이름을 뺀다
+- 옛 기록(진행 기록·트러블슈팅·ADR 본문)의 `com.kyumin.ledger`·`LedgerApplication` 은 그때의 사실이라 고치지 않는다. V1 의 `ledger_periods` 는 도메인 용어(공동 가계부 회차)라 대상 아님
 
 ## 공동 가계부 (Sprint 4 예정)
 

@@ -1,3 +1,3 @@
 logging:
   level:
-    com.kyumin.ledger.mapper: DEBUG
+    com.kyumin.dotoree.mapper: DEBUG

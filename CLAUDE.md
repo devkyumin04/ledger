@@ -1,4 +1,6 @@
-# Ledger V3.0
+# 도토리 (dotoree)
+
+> 프로젝트 이름 **도토리(dotoree)** — 코드·빌드 이름은 `dotoree`. 저장소·서버·DB·AWS 의 `ledger`(`ledger.service`·`ledger_db`·`ledger-prod` …)는 **내부 코드명으로 그대로 둔다** (ADR-054)
 
 AI 영수증 인식 및 지도 기반 개인·공동 가계부. 24시간 상시 운영 실서비스를 목표로 개발 중.
 
@@ -26,7 +28,7 @@ AI 영수증 인식 및 지도 기반 개인·공동 가계부. 24시간 상시 
 - **지도** — 카카오맵 API
 - **인프라** — AWS EC2(ARM t4g · Ubuntu 26.04 LTS. 지금 t4g.small, Ollama 도입 때 t4g.medium) 단일 인스턴스에 Spring Boot + MySQL + 임베딩 모델 (Redis 없음 — 서버 2대부터), S3, Nginx + Let's Encrypt, GitHub Actions. 도메인 `dotoree.app`(Cloudflare, DNS only)
 
-패키지 루트: `com.kyumin.ledger`
+패키지 루트: `com.kyumin.dotoree`
 
 ---
 

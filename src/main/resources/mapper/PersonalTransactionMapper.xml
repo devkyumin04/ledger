@@ -2,7 +2,7 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.kyumin.ledger.mapper.PersonalTransactionMapper">
+<mapper namespace="com.kyumin.dotoree.mapper.PersonalTransactionMapper">
 
 	<!--
 		parameterType / resultType 결정 기준
@@ -26,7 +26,7 @@
 		4. 테이블 별칭(t, c) 명시 — 양쪽에 category_num 이 있어 모호해짐
 	-->
 
-	<insert id="insertTransaction" parameterType="com.kyumin.ledger.domain.PersonalTransaction"
+	<insert id="insertTransaction" parameterType="com.kyumin.dotoree.domain.PersonalTransaction"
 		useGeneratedKeys="true" keyProperty="transNum">
 		INSERT INTO personal_transactions (
 			user_num, category_num, trans_type,
@@ -38,7 +38,7 @@
 		)
 	</insert>
 
-	<select id="findByMonth" resultType="com.kyumin.ledger.dto.PersonalTransactionResponseDto">
+	<select id="findByMonth" resultType="com.kyumin.dotoree.dto.PersonalTransactionResponseDto">
 		SELECT t.trans_num, t.version, t.trans_amount, t.trans_date,
 				t.trans_memo, t.trans_type, t.category_num,
 				c.category_name, c.category_emoji
@@ -54,14 +54,14 @@
 		ORDER BY t.trans_date DESC, t.trans_num ASC
 	</select>
 
-	<select id="findByTransNum" resultType="com.kyumin.ledger.domain.PersonalTransaction">
+	<select id="findByTransNum" resultType="com.kyumin.dotoree.domain.PersonalTransaction">
 		SELECT *
 		FROM personal_transactions
 		WHERE trans_num = #{transNum} 
 		AND use_yn = 'Y'
 	</select>
 
-	<update id="updateTransaction" parameterType="com.kyumin.ledger.domain.PersonalTransaction">
+	<update id="updateTransaction" parameterType="com.kyumin.dotoree.domain.PersonalTransaction">
 		UPDATE personal_transactions
 		SET category_num = #{categoryNum},
 			trans_type = #{transType},

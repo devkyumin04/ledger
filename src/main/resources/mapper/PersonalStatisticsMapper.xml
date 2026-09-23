@@ -2,7 +2,7 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.kyumin.ledger.mapper.PersonalStatisticsMapper">
+<mapper namespace="com.kyumin.dotoree.mapper.PersonalStatisticsMapper">
 
 	<!--
 		통계 쿼리를 쓸 때 꼭 지킬 것
@@ -23,7 +23,7 @@
 		5. 사용자 격리 — WHERE 에 user_num 필수
 	-->
 
-	<select id="findCategoryStats" resultType="com.kyumin.ledger.dto.CategoryStatRowDto">
+	<select id="findCategoryStats" resultType="com.kyumin.dotoree.dto.CategoryStatRowDto">
 		SELECT 
 			c.category_num, 
 			c.category_name, 
@@ -48,7 +48,7 @@
 		ORDER BY amount DESC
 	</select>
 
-	<select id="findMonthlyStats" resultType="com.kyumin.ledger.dto.MonthlyStatRowDto">
+	<select id="findMonthlyStats" resultType="com.kyumin.dotoree.dto.MonthlyStatRowDto">
 		SELECT DATE_FORMAT(trans_date, '%Y-%m') AS yearMonth,
 				SUM(CASE WHEN trans_type = 'I' THEN trans_amount ELSE 0 END) AS totalIncome,
 				SUM(CASE WHEN trans_type = 'E' THEN trans_amount ELSE 0 END) AS totalExpense

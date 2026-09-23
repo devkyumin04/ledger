@@ -2,7 +2,7 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.kyumin.ledger.mapper.PersonalCategoryMapper">
+<mapper namespace="com.kyumin.dotoree.mapper.PersonalCategoryMapper">
 
 	<!-- 
 		parametertype, resulttype 결정
@@ -10,7 +10,7 @@
 		2. 반환하는게 객체, 리스트면 result타입, void면 명시 불필요
 	-->
 	
-    <insert id="insertCategory" parameterType="com.kyumin.ledger.domain.PersonalCategory"
+    <insert id="insertCategory" parameterType="com.kyumin.dotoree.domain.PersonalCategory"
         useGeneratedKeys="true" keyProperty="categoryNum">
 		INSERT INTO personal_categories (
 			user_num, parent_category_num, category_name, category_emoji, 
@@ -22,19 +22,19 @@
 		)
     </insert>
 
-    <select id="findByUserNum" resultType="com.kyumin.ledger.domain.PersonalCategory">
+    <select id="findByUserNum" resultType="com.kyumin.dotoree.domain.PersonalCategory">
 		SELECT *
 		FROM personal_categories
 		WHERE user_num = #{userNum} AND use_yn = 'Y'
     </select>
 	
-	<select id="findByCategoryNum" resultType="com.kyumin.ledger.domain.PersonalCategory">
+	<select id="findByCategoryNum" resultType="com.kyumin.dotoree.domain.PersonalCategory">
 		SELECT *
 		FROM personal_categories
 		WHERE category_num = #{categoryNum} AND use_yn = 'Y'
 	</select>
 	
-	<update id="updateCategory" parameterType="com.kyumin.ledger.domain.PersonalCategory">
+	<update id="updateCategory" parameterType="com.kyumin.dotoree.domain.PersonalCategory">
 	    UPDATE personal_categories
 	    SET category_name = #{categoryName},
 	        category_emoji = #{categoryEmoji},
@@ -54,7 +54,7 @@
 		WHERE category_num = #{categoryNum}
 	</update>
 
-	<select id="findDefaultCategory" resultType="com.kyumin.ledger.domain.PersonalCategory">
+	<select id="findDefaultCategory" resultType="com.kyumin.dotoree.domain.PersonalCategory">
 		SELECT *
 		FROM personal_categories
 		WHERE user_num = #{userNum}
