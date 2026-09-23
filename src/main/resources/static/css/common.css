@@ -67,9 +67,9 @@ input, select {
     padding: 0 16px;
 }
 
-.error-message {
-    color: var(--error);
-    font-size: 13px;
+/* 입력칸 → 다음 라벨 사이는 한 칸 더 (gap 12 + 12). 전엔 빈 오류 span 이 이 간격을 만들고 있었다 (2026-09-23 정리) */
+.form-container label:not(:first-child) {
+    margin-top: 12px;
 }
 
 .result-message {
@@ -92,6 +92,9 @@ a {
     border-radius: 4px;
     color: var(--text);
 }
+
+/* hidden 속성 — 위 a { display: block } 이 브라우저 기본값(display: none)을 이긴다. 작성자 CSS 가 우선이라서 */
+[hidden] { display: none !important; }
 
 .inline-link {
     display: inline;
@@ -213,7 +216,7 @@ a {
 .home-bar { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--border); }
 .home-brand { font-size: 1.2rem; font-weight: 800; letter-spacing: -.02em; }
 .home-bar-actions { display: flex; gap: 8px; }
-.home-bar-actions button { padding: 8px 12px; background: var(--surface); color: var(--text); }
+.home-bar-actions button, .home a.home-bar-link { padding: 8px 12px; background: var(--surface); color: var(--text); margin: 0; border: none; border-radius: 4px; font-size: 13.33px; }
 
 .home-hero { padding: 56px 0 40px; text-align: center; }
 .home-hero h1 { margin: 0 0 12px; font-size: clamp(1.6rem, 4vw, 2.2rem); letter-spacing: -.02em; min-height: 1.3em; }
@@ -249,6 +252,7 @@ a {
 .home-shot .stat-item .stat-amount { width: auto; }
 
 .home-note { margin: 24px 0 0; text-align: center; font-size: 13px; opacity: .6; }
+.home-notice { margin: 16px 0 0; color: var(--error); font-weight: 700; }
 
 @media (max-width: 720px) {
     .home-menu { grid-template-columns: 1fr 1fr; }
@@ -256,3 +260,29 @@ a {
     .home-step:nth-of-type(even) .home-step-text { order: 0; }
     .home-hero { padding: 40px 0 28px; }
 }
+
+/* ── 가입 폼 보조 ─────────────────────────── */
+.form-check { display: flex; align-items: center; gap: 8px; }
+.form-check input { width: auto; margin: 0; padding: 0; }
+.form-help { margin: 0; font-size: 13px; opacity: .7; }
+
+/* ── 푸터 (메인·로그인·가입·처리방침) ────────── */
+.site-footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; max-width: 880px; margin: 48px auto 0; padding: 24px 16px 40px; border-top: 1px solid var(--border); font-size: 13px; opacity: .7; }
+
+/* ── 문서 화면 (개인정보 처리방침) ────────────── */
+.doc { max-width: 720px; margin: 0 auto; padding: 32px 16px 0; line-height: 1.7; }
+.doc h1 { font-size: 1.6rem; margin: 0 0 8px; }
+.doc h2 { font-size: 1.1rem; margin: 32px 0 8px; }
+.doc table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.doc th, .doc td { border: 1px solid var(--border); padding: 8px; text-align: left; vertical-align: top; }
+.doc th { background: var(--surface); }
+.doc-meta { opacity: .7; font-size: 14px; }
+
+/* ── 폼 화면 틀 (로그인·가입·마이페이지·탈퇴) — 제목은 .page-container, 폼·메시지는 .form-section 로 가운데 정렬 ── */
+.form-section { max-width: 400px; margin: 0 auto 32px; padding: 0 16px; }
+.form-section h2 { font-size: 1.1rem; margin: 0 0 8px; }
+.form-section .form-container { margin: 0; padding: 0; }
+.form-section .form-help { margin-top: 16px; }
+.form-section .form-container .form-help { margin-top: 0; }
+.mypage-value { padding: 10px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); opacity: .8; }
+.mypage-danger { text-align: center; }

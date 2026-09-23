@@ -5,6 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -14,6 +15,9 @@ import com.kyumin.ledger.dto.LoginRequestDto;
 import com.kyumin.ledger.dto.LoginResponseDto;
 import com.kyumin.ledger.dto.SignupRequestDto;
 import com.kyumin.ledger.dto.SignupResponseDto;
+import com.kyumin.ledger.dto.PasswordConfirmRequestDto;
+import com.kyumin.ledger.dto.NicknameRequestDto;
+import com.kyumin.ledger.dto.PasswordChangeRequestDto;
 import com.kyumin.ledger.service.UserService;
 
 import jakarta.validation.Valid;
@@ -45,5 +49,36 @@ public class UserController {
     public ResponseEntity<LoginResponseDto> getMyInfo(@AuthenticationPrincipal Integer userNum) {
         LoginResponseDto responseDto = userService.getMyInfo(userNum);
         return ResponseEntity.status(HttpStatus.OK).body(responseDto);
+    }
+
+    // 마이페이지 관문 — 비밀번호가 맞으면 204. 화면은 이걸 통과해야 내용을 보여준다
+    @PostMapping("/me/verify-password")
+    public ResponseEntity<Void> verifyPassword(@AuthenticationPrincipal Integer userNum,
+                                               @Valid @RequestBody PasswordConfirmRequestDto requestDto) {
+        userService.verifyPassword(userNum, requestDto);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    // 마이페이지 — 닉네임은 바뀐 내 정보를 돌려준다(화면이 다시 조회하지 않게), 비밀번호는 204
+    @PutMapping("/me/nickname")
+    public ResponseEntity<LoginResponseDto> updateNickname(@AuthenticationPrincipal Integer userNum,
+                                                           @Valid @RequestBody NicknameRequestDto requestDto) {
+        LoginResponseDto responseDto = userService.updateNickname(userNum, requestDto);
+        return ResponseEntity.status(HttpStatus.OK).body(responseDto);
+    }
+
+    @PutMapping("/me/password")
+    public ResponseEntity<Void> changePassword(@AuthenticationPrincipal Integer userNum,
+                                               @Valid @RequestBody PasswordChangeRequestDto requestDto) {
+        userService.changePassword(userNum, requestDto);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
+    }
+
+    // 비밀번호를 본문으로 받으므로 DELETE 가 아니라 POST — DELETE 의 본문은 프록시·클라이언트가 버리기도 한다
+    @PostMapping("/withdraw")
+    public ResponseEntity<Void> withdraw(@AuthenticationPrincipal Integer userNum,
+                                         @Valid @RequestBody PasswordConfirmRequestDto requestDto) {
+        userService.withdraw(userNum, requestDto);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 }

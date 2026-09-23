@@ -37,6 +37,16 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(e.getMessage());
     }
     
+    @ExceptionHandler(PasswordMismatchException.class)
+    public ResponseEntity<String> handlePasswordMismatch(PasswordMismatchException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+
+    @ExceptionHandler(SamePasswordException.class)
+    public ResponseEntity<String> handleSamePassword(SamePasswordException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+    }
+
     @ExceptionHandler(CategoryNotFoundException.class)
     public ResponseEntity<String> handleCategoryNotFound(CategoryNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());

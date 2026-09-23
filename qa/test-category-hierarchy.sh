@@ -54,4 +54,4 @@ req DELETE /api/categories/$SP > /dev/null
 req DELETE /api/categories/$ZEN > /dev/null
 
 summary
-echo "(10번 로그인 STATUS는 DB에서 수동 확인: rollback 계정 user_last_login_at 갱신됐는지, status='W'로 바꾸고 로그인 401인지)"
+echo "(10번 로그인 STATUS는 DB에서 수동 확인: rollback 계정 user_last_login_at 갱신됐는지. 'W'(탈퇴) 계정 로그인은 이제 401 이 아니라 탈퇴 취소 — test-withdraw.sh 3번이 자동으로 검사, ADR-052)"

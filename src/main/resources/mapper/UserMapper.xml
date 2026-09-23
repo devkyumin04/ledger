@@ -35,5 +35,81 @@
 		SET user_last_login_at = NOW()
 		WHERE user_num = #{userNum}
 	</update>
+
+	<!-- ── 마이페이지 ───────────────────────────────────── -->
+	<update id="updateNickname">
+		UPDATE users
+		SET user_nickname = #{nickname}
+		WHERE user_num = #{userNum}
+		  AND user_status = 'A'
+	</update>
+
+	<update id="updatePassword">
+		UPDATE users
+		SET user_pw = #{encodedPassword}
+		WHERE user_num = #{userNum}
+		  AND user_status = 'A'
+	</update>
+
+	<!-- ── 탈퇴 · 복구 · 파기 (ADR-052) ─────────────────────
+	     시각은 전부 DB 의 NOW() — 앱과 DB 가 같은 시계를 본다 (ADR-026 3계층이 KST 로 맞춰져 있다) -->
+
+	<update id="withdraw">
+		UPDATE users
+		SET user_status = 'W', user_withdrawn_at = NOW()
+		WHERE user_num = #{userNum}
+		  AND user_status = 'A'
+	</update>
+
+	<update id="restore">
+		UPDATE users
+		SET user_status = 'A', user_withdrawn_at = NULL
+		WHERE user_num = #{userNum}
+		  AND user_status = 'W'
+	</update>
+
+	<select id="findPurgeTargets" resultType="java.lang.Integer">
+		SELECT user_num
+		FROM users
+		WHERE user_status = 'W'
+		  AND user_withdrawn_at &lt; NOW() - INTERVAL #{graceDays} DAY
+	</select>
+
+	<!-- FOR UPDATE — 파기 트랜잭션이 끝날 때까지 이 행을 잠근다.
+	     같은 순간 로그인(restore)이 오면 그쪽이 기다렸다가 0행을 받아 로그인 실패로 끝난다 -->
+	<select id="lockPurgeTarget" resultType="java.lang.Integer">
+		SELECT user_num
+		FROM users
+		WHERE user_num = #{userNum}
+		  AND user_status = 'W'
+		  AND user_withdrawn_at &lt; NOW() - INTERVAL #{graceDays} DAY
+		FOR UPDATE
+	</select>
+
+	<!-- 삭제 순서 = FK 순서. 거래가 카테고리를, 카테고리가 계정을 참조한다.
+	     카테고리는 자기참조 FK(FK_PCAT_PARENT) 때문에 소분류 → 나머지 두 번 (qa/reset-data.sql 과 같은 이유, 2계층이라 두 번이면 끝)
+	     ★ users 를 참조하는 테이블을 쓰기 시작하면(refresh_tokens · auth_verifications · social_accounts · 공동 가계부)
+	       여기에 그 테이블을 먼저 지우는 문장을 추가한다. 안 하면 FK 1451 로 그 계정 파기가 실패한다(로그 error, 다음 날 재시도) -->
+	<delete id="deleteTransactionsOf">
+		DELETE FROM personal_transactions
+		WHERE user_num = #{userNum}
+	</delete>
+
+	<delete id="deleteChildCategoriesOf">
+		DELETE FROM personal_categories
+		WHERE user_num = #{userNum}
+		  AND parent_category_num IS NOT NULL
+	</delete>
+
+	<delete id="deleteCategoriesOf">
+		DELETE FROM personal_categories
+		WHERE user_num = #{userNum}
+	</delete>
+
+	<delete id="deleteUser">
+		DELETE FROM users
+		WHERE user_num = #{userNum}
+		  AND user_status = 'W'
+	</delete>
 	
 </mapper>

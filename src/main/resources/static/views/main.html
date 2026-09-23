@@ -3,24 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Ledger — 가계부</title>
+    <title>도토리 — 가계부</title>
     <link rel="stylesheet" href="/css/common.css">
     <script src="/js/util/theme.js"></script>
 </head>
 <body>
     <div class="home">
         <header class="home-bar">
-            <span class="home-brand">Ledger</span>
+            <span class="home-brand">도토리</span>
             <div class="home-bar-actions">
                 <button id="themeToggle" type="button" aria-label="테마 바꾸기">🌓</button>
-                <button id="logoutBtn" type="button">로그아웃</button>
+                <a id="loginLink" class="home-bar-link" href="/views/user/login.html">로그인</a>
+                <a id="signupLink" class="home-bar-link" href="/views/user/signup.html">회원가입</a>
+                <a id="mypageLink" class="home-bar-link" href="/views/user/mypage.html" hidden>마이페이지</a>
+                <button id="logoutBtn" type="button" hidden>로그아웃</button>
             </div>
         </header>
 
         <section class="home-hero">
-            <h1 id="welcomeMessage"></h1>
+            <h1 id="welcomeMessage">도토리 가계부</h1>
             <p>수입과 지출을 기록하고, 달마다 돈이 어디로 갔는지 한눈에 봅니다.</p>
             <a class="home-cta" href="/views/personal/personal-main.html">가계부 열기</a>
+            <p id="loginNotice" class="home-notice" hidden>로그인이 필요합니다. 로그인 화면으로 이동합니다…</p>
         </section>
 
         <nav class="home-menu" aria-label="메뉴">
@@ -130,7 +134,11 @@
         </section>
     </div>
 
-    <script src="/js/util/authGuard.js"></script>
+    <footer class="site-footer">
+        <a href="/views/privacy.html" class="inline-link">개인정보 처리방침</a>
+        <a href="mailto:support@dotoree.app" class="inline-link">support@dotoree.app</a>
+    </footer>
+
     <script src="/js/util/apiClient.js"></script>
     <script src="/js/main.js"></script>
 </body>

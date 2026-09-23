@@ -32,7 +32,7 @@ AWS 콘솔에서 **무엇을 어떤 값으로 만들었고 왜 그랬는지**. �
 | IAM 역할 | `ledger-github-deploy` (2026-09-19, 신뢰 정책 2026-09-20 수정) | GitHub Actions 가 OIDC 로 맡는 역할. 신뢰 정책 `sub` 는 **main 브랜치 두 형태만**(`repo:<OWNER>/<REPO>:ref:refs/heads/main` + 숫자 ID 가 박힌 `repo:<OWNER>@<OWNER_ID>/<REPO>@<REPO_ID>:...`). **실제로 오는 건 ID 형태** — 콘솔이 자동으로 채워주는 이름 형태만 두면 `Not authorized` 로 거절된다(3-6 실측). 권한은 `ledger-deploy-sg-ssh` 하나 |
 | 도메인 | **`dotoree.app`** (2026-09-21, Cloudflare Registrar) | 1년 · 자동 갱신 켬 · 연 $14.20(원가 판매라 갱신가 동일). 네임서버는 Cloudflare 고정(이 등록기관의 조건). **AWS 자원이 아니라 Cloudflare 계정**(2FA TOTP)에 있다. `.app` 은 HSTS preload — 인증서 없이는 브라우저로 안 열린다 |
 | DNS 레코드 | `A @` → 탄력적 IP / `CNAME www` → `dotoree.app` | 둘 다 **DNS only(회색 구름)**. 프록시를 켜면 HTTPS 를 Cloudflare 가 대신 끝내서 Nginx·certbot 이 할 일이 사라지고 인증도 가로막힌다. `www` 를 CNAME 으로 둔 건 IP 가 바뀔 때 A 한 줄만 고치려고(ETC) |
-| Nginx | **1.28.3** (apt, 2026-09-21) | `/etc/nginx/sites-available/ledger`(→ `sites-enabled` 링크). 블록 4개 — 80·443 문지기(모르는 이름은 444 / TLS 거부) · 80→443 · 443→`127.0.0.1:8080`. `/actuator` 는 health 만 통과, 나머지 404. 설치 직후 원본은 `ledger.bak-certbot` |
+| Nginx | **1.28.3** (apt, 2026-09-21) | `/etc/nginx/sites-available/ledger`(→ `sites-enabled` 링크). 블록 4개 — 80·443 문지기(모르는 이름은 444 / TLS 거부) · 80→443 · 443→`127.0.0.1:8080`. `/actuator` 는 health 만 통과, 나머지 404. certbot 이 고쳤던 원본 백업 `ledger.bak-certbot` 은 2026-09-23 삭제(재작성 설정이 이틀 문제없어서) |
 | TLS 인증서 | Let's Encrypt, `dotoree.app` + `www` (2026-09-21) | certbot **4.0.0**(apt). `/etc/letsencrypt/live/dotoree.app/`(개인키 root 전용). 90일 — `certbot.timer` 가 만료 30일 이내일 때 갱신. 첫 만료 2026-12-20 |
 | DB 백업 (로컬) | `/usr/local/sbin/ledger-backup` + `ledger-backup.timer` (2026-09-22) | 매일 **04:00 KST**, `Persistent=true`(꺼져 있던 날은 켜지면 밀린 실행). root 가 `mysqldump --single-transaction`(MySQL root = `auth_socket`, 새 비밀 0개) → gzip → `/var/backups/ledger/`(root 700 · 파일 600). `.tmp` 에 쓰고 검사 두 개(`gzip -t` + 마지막 줄 `-- Dump completed`) 통과해야 `mv`. 보관 **약 7일**(`-mtime +7` 이라 7~8개). 로그 `journalctl -u ledger-backup`. 성공하면 S3 `daily/` 로 업로드(인스턴스 역할, 키 파일 없음) — **업로드가 실패하면 로컬 정리 전에 멈춘다.** 끝나면 성공이든 실패든 Healthchecks `ledger-backup` 에 핑(2026-09-22, ADR-051). 정본은 저장소 `ops/`(sha256 일치 확인) |
 | 백업 설정 파일 | `/etc/ledger/backup.env` (root 600, 2026-09-22) | 세 줄 — `S3_BACKUP_BUCKET`(식별자. 손으로 쓰지 않고 `sts get-caller-identity` 로 조립, 트러블슈팅 18) · `HC_BACKUP_URL` · `HC_CERT_URL`(약한 비밀. `read -s` 로 받아 정규식·길이 검사 후 `tee -a`). 백업·인증서 스크립트가 같이 읽는다 |
@@ -45,9 +45,12 @@ AWS 콘솔에서 **무엇을 어떤 값으로 만들었고 왜 그랬는지**. �
 | 인증서 검사 | `/usr/local/sbin/ledger-certcheck` + `ledger-certcheck.timer` (2026-09-22) | 매일 **09:00 KST**, `Persistent`. `openssl s_client` 로 `127.0.0.1:443`(SNI `dotoree.app`)에 붙어 **지금 내보내는 인증서**의 남은 날짜 → 21일 초과면 Healthchecks `ledger-cert` 에 `/0`, 아니면 `/1`(본문에 N days left). 로그 `journalctl -u ledger-certcheck`. 정본은 저장소 `ops/` (ADR-051) |
 | 외부 감시 | **UptimeRobot** 무료 (2026-09-22, AWS 밖) | 키워드 모니터 `ledger-health` — `https://dotoree.app/actuator/health` 본문에 `"status":"UP"` 이 **없으면** DOWN, 5분 간격, 북미에서. 알림 이메일만. SSL 만료·heartbeat·상태 코드 선택은 유료라 안 씀(트러블슈팅 20). 계정 2FA(TOTP) |
 | 작업 감시 | **Healthchecks.io** 무료 (2026-09-22, AWS 밖) | 체크 `ledger-backup` · `ledger-cert` — 둘 다 Period 1일 + Grace 1시간, 알림 이메일. 실패 핑은 즉시, 무응답은 25시간 뒤 메일. 계정 2FA(TOTP, 복구 코드 없음), 시간대 Asia/Seoul |
+| SES 발신 도메인 | `dotoree.app` 도메인 자격 증명 (2026-09-22, 서울) | **도메인 단위** — `noreply@`·`support@` 등 이 도메인의 어떤 주소로든 보낸다(이메일 주소 단위는 그 주소 하나만). **Easy DKIM**(RSA 2048) — SES 가 준 CNAME 3개를 Cloudflare 에(DNS only, 이름은 `…._domainkey` 까지만 — Cloudflare 가 도메인을 붙인다). Route 53 자동 게시는 끔(DNS 가 Cloudflare). 사용자 지정 MAIL FROM 없음 — DMARC 정렬은 DKIM 으로 충족. 기본 구성 세트·테넌트 없음. **발송 권한(역할 정책)은 아직 안 붙임** — 이메일 인증 기능을 만들 때 `ledger-prod-ec2` 에 정책 추가. 계정은 **샌드박스**(검증된 수신자만 · 하루 200통 · 초당 1통) → 해제 신청은 아래 이력 |
+| 메일 받기 (support@) | Cloudflare **Email Routing** (2026-09-23, AWS 밖) | `support@dotoree.app` → 개인 Gmail 로 전달(받기 전용, 보내기는 SES). 계정 단위 메뉴 Compute → Email Service → Email Routing. Cloudflare 가 MX 3줄(`route1~3.mx.cloudflare.net`) · 루트 SPF TXT(`include:_spf.mx.cloudflare.net`) · DKIM TXT(`cf2024-1._domainkey`)를 추가. SES 는 SPF 를 amazonses.com 으로 처리하고 DKIM 이름이 달라 충돌 없음. 전달 대상 주소는 저장소에 적지 않는다 |
+| DMARC | `_dmarc` TXT `v=DMARC1; p=none;` (2026-09-22, Cloudflare) | 인증 실패 메일을 **막지 않고 보기만**. 설정 실수로 우리 메일까지 사라지지 않게 `none` 으로 시작하고, 메일이 몇 주 문제없이 나가면 `quarantine` 으로 올린다. 보고서 수신(`rua`)은 받을 메일함이 생기면 |
 | 예산 알림 | `ledger-monthly` 월 $30 | 실제 85% · 100% 도달, 예상 100% 도달 시 메일. **알림만 — 과금을 멈추지는 않는다** |
 
-아직 없는 것 — SES (Sprint 1 이메일 인증 때). 각각 진행상황.md 5단계 · Sprint 2 에서.
+아직 없는 것 — SES 발송 권한·앱 설정(Sprint 1 이메일 인증 때).
 
 ## 비용 (월 추정)
 
@@ -328,3 +331,7 @@ sudo systemctl start ledger-certcheck.service                       # 지금 한
 | 2026-09-22 | AWS CLI(snap) · 역할로 인증 확인(`assumed-role/ledger-prod-ec2`, 키 파일 없음) → `backup.env` → 스크립트에 S3 업로드 추가 · systemd 로 1회 성공 → **권한 실측 6종**(목록·읽기·삭제·`daily/` 밖 쓰기 거부 / `daily/` 쓰기·덮어쓰기 허용 → 콘솔 "버전 표시"로 이전 버전 보존 확인) → **복구 리허설**(S3 → 맥, 19테이블 행 수 일치) | 직접 (AI 안내) |
 | 2026-09-22 | 5-6 감시 — UptimeRobot 가입·2FA → 키워드 모니터 `ledger-health`(HTTP 모니터에서 교체, SSL·heartbeat·상태 코드는 유료라 확인 후 포기) · Healthchecks.io 가입·2FA·시간대 → 체크 `ledger-backup`·`ledger-cert`(1일 + 1시간) · Gmail 필터 2개 | 직접 (AI 안내, 필터·시간대는 AI 가 내장 브라우저로) |
 | 2026-09-22 | `backup.env` 에 `HC_BACKUP_URL`·`HC_CERT_URL`(`read -s` → 형식 검사) → `ops/` 스크립트 설치(`ledger-backup` 교체 + `ledger-certcheck`·유닛 2개, sha256 일치) → `enable --now ledger-certcheck.timer` → 1회 실행 두 체크 up → **실패 흉내로 DOWN·UP 메일 실측** | 직접 (AI 안내) |
+| 2026-09-22 | SES 도메인 자격 증명 `dotoree.app`(Easy DKIM 2048, Route 53 게시 끔) → Cloudflare 에 DKIM CNAME 3개 + `_dmarc` TXT → 공개 DNS 조회로 값·DNS only·이중 도메인 없음 확인 | SES 는 AI 가 콘솔 조작(내장 브라우저) / Cloudflare 는 직접(내장 브라우저가 Turnstile 에 막힘) |
+| 2026-09-23 | Cloudflare Email Routing — `support@dotoree.app` → Gmail(목적지 인증 · 라우팅 규칙). 공개 DNS 로 MX·SPF·DKIM 추가 + SES DKIM·DMARC 유지 확인 | 직접 (AI 가 메뉴 위치 안내 · DNS 검사) |
+| 2026-09-23 | EC2 `/etc/nginx/sites-available/ledger.bak-certbot` 삭제 → `nginx -t` ok | 직접 |
+| 2026-09-23 | 운영 DB 확인용 계정 `test@test.com`(2-5 에서 만든 것) 하드 삭제 — 거래·카테고리·계정. 다른 계정에서 support@ 로 보낸 메일 Gmail 수신 확인 | 직접 (DBeaver `ledger_db(EC2)`) |

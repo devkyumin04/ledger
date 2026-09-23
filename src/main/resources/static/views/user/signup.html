@@ -2,32 +2,44 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <title>회원가입</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>회원가입 — 도토리</title>
 	<link rel="stylesheet" href="/css/common.css">
 	<script src="/js/util/theme.js"></script>
 </head>
 <body>
-    <h1>회원가입</h1>
+    <div class="page-container">
+        <a href="/views/main.html" class="inline-link">← 메인</a>
+        <h1>회원가입</h1>
+    </div>
 
-    <form id="signupForm" class="form-container">
-        <label for="email">이메일</label>
-        <input type="email" id="email" maxlength="100" required>
-        <span id="emailError" class="error-message"></span>
+    <section class="form-section">
+        <form id="signupForm" class="form-container">
+            <label for="email">이메일</label>
+            <input type="email" id="email" maxlength="100" required>
 
-        <label for="password">비밀번호</label>
-        <input type="password" id="password" minlength="8" maxlength="20" required>
-        <span id="passwordError" class="error-message"></span>
+            <label for="password">비밀번호</label>
+            <input type="password" id="password" minlength="8" maxlength="20" required>
 
-        <label for="nickname">닉네임</label>
-        <input type="text" id="nickname" maxlength="20" required>
-        <span id="nicknameError" class="error-message"></span>
+            <label for="nickname">닉네임</label>
+            <input type="text" id="nickname" maxlength="20" required>
 
-        <button type="submit" id="submitBtn">가입하기</button>
-    </form>
+            <label class="form-check">
+                <input type="checkbox" id="ageCheck" required>
+                만 14세 이상입니다
+            </label>
+            <p class="form-help">가입하면 <a href="/views/privacy.html" class="inline-link">개인정보 처리방침</a>에 따라 이메일·닉네임을 처리합니다.</p>
 
-    <p>이미 계정이 있으신가요? <a href="/views/user/login.html" class="inline-link">로그인</a></p>
+            <button type="submit" id="submitBtn">가입하기</button>
+        </form>
+        <div id="resultMessage" class="result-message"></div>
+        <p class="form-help">이미 계정이 있으신가요? <a href="/views/user/login.html" class="inline-link">로그인</a></p>
+    </section>
 
-    <div id="resultMessage" class="result-message"></div>
+    <footer class="site-footer">
+        <a href="/views/privacy.html" class="inline-link">개인정보 처리방침</a>
+        <a href="mailto:support@dotoree.app" class="inline-link">support@dotoree.app</a>
+    </footer>
 
     <script src="/js/util/apiClient.js"></script>
     <script src="/js/util/buttonUtil.js"></script>

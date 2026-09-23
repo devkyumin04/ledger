@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>마이페이지 — 도토리</title>
+    <link rel="stylesheet" href="/css/common.css">
+    <script src="/js/util/theme.js"></script>
+</head>
+<body>
+    <div class="page-container">
+        <a href="/views/main.html" class="inline-link">← 메인</a>
+        <h1>마이페이지</h1>
+    </div>
+
+    <!-- 1단계 — 비밀번호 확인. 통과해야 아래 내용이 보인다 (새로고침하면 다시 묻는다) -->
+    <section id="gate" class="form-section">
+        <form id="gateForm" class="form-container">
+            <p class="form-help">개인정보를 보호하기 위해 비밀번호를 한 번 더 입력해 주세요.</p>
+            <label for="gatePassword">비밀번호</label>
+            <input type="password" id="gatePassword" maxlength="20" required>
+            <button type="submit" id="gateBtn">확인</button>
+        </form>
+        <div id="gateMessage" class="result-message"></div>
+    </section>
+
+    <!-- 2단계 — 내 정보 -->
+    <div id="mypageBody" hidden>
+        <section class="form-section">
+            <h2>계정</h2>
+            <div class="form-container">
+                <label>이메일</label>
+                <div id="email" class="mypage-value"></div>
+            </div>
+        </section>
+
+        <section class="form-section">
+            <h2>닉네임</h2>
+            <form id="nicknameForm" class="form-container">
+                <label for="nickname">닉네임</label>
+                <input type="text" id="nickname" maxlength="20" required>
+                <button type="submit" id="nicknameBtn">닉네임 변경</button>
+            </form>
+            <div id="nicknameMessage" class="result-message"></div>
+        </section>
+
+        <section class="form-section">
+            <h2>비밀번호</h2>
+            <form id="passwordForm" class="form-container">
+                <label for="newPassword">새 비밀번호</label>
+                <input type="password" id="newPassword" minlength="8" maxlength="20" required>
+                <label for="newPasswordCheck">새 비밀번호 확인</label>
+                <input type="password" id="newPasswordCheck" minlength="8" maxlength="20" required>
+                <p class="form-help">8~20자, 영문·숫자·특수문자를 각각 1자 이상</p>
+                <button type="submit" id="passwordBtn">비밀번호 변경</button>
+            </form>
+            <div id="passwordMessage" class="result-message"></div>
+        </section>
+
+        <section class="form-section mypage-danger">
+            <a href="/views/user/withdraw.html" class="inline-link">회원 탈퇴</a>
+        </section>
+    </div>
+
+    <footer class="site-footer">
+        <a href="/views/privacy.html" class="inline-link">개인정보 처리방침</a>
+        <a href="mailto:support@dotoree.app" class="inline-link">support@dotoree.app</a>
+    </footer>
+
+    <script src="/js/util/authGuard.js"></script>
+    <script src="/js/util/apiClient.js"></script>
+    <script src="/js/util/buttonUtil.js"></script>
+    <script src="/js/user/mypage.js"></script>
+</body>
+</html>

@@ -56,7 +56,7 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
-  # 게이트 — 146케이스(qa/test-*.sh)를 러너 안의 일회용 MySQL 에서 돌린다. 운영 DB 는 건드리지 않는다 (ADR-042)
+  # 게이트 — qa/test-*.sh 전부(192케이스)를 러너 안의 일회용 MySQL 에서 돌린다. 운영 DB 는 건드리지 않는다 (ADR-042)
   qa:
     needs: build
     runs-on: ubuntu-latest
@@ -92,6 +92,9 @@ jobs:
       QA_DB_HOST: 127.0.0.1
       QA_DB_USER: root
       QA_DB_PASSWORD: root_ci_password
+      # 탈퇴 계정 파기 스케줄러를 2초마다 — test-withdraw.sh 가 파기까지 기다려 확인한다 (평소엔 매일 03:30, ADR-052)
+      LEDGER_PURGE_CRON: "*/2 * * * * *"
+      QA_PURGE_FAST: "1"
 
     steps:
       - name: 소스코드 체크아웃 (qa 스크립트)
@@ -125,7 +128,7 @@ jobs:
       - name: 테스트 계정 시드
         run: bash qa/reset-all.sh
 
-      - name: 회귀 146케이스
+      - name: 회귀 (qa/test-*.sh 전부)
         run: |
           # 하나가 실패해도 나머지를 끝까지 돌린다 — 한 번의 실행에서 깨진 곳을 전부 본다
           failed=""
@@ -136,7 +139,7 @@ jobs:
           done
           # 접힌 그룹을 열지 않아도 어디가 깨졌는지 보이게
           if [ -n "$failed" ]; then echo "❌ 실패한 스크립트:$failed"; exit 1; fi
-          echo "✅ 4개 스크립트 전부 통과"
+          echo "✅ 스크립트 전부 통과"
 
       - name: 실패 시 앱 로그
         if: failure()
