@@ -11,6 +11,7 @@ import com.kyumin.dotoree.mapper.UserMapper;
 import com.kyumin.dotoree.security.JwtTokenProvider;
 import com.kyumin.dotoree.dto.LoginRequestDto;
 import com.kyumin.dotoree.dto.LoginResponseDto;
+import com.kyumin.dotoree.dto.UserInfoResponseDto;
 import com.kyumin.dotoree.dto.SignupRequestDto;
 import com.kyumin.dotoree.dto.SignupResponseDto;
 import com.kyumin.dotoree.dto.PasswordConfirmRequestDto;
@@ -118,7 +119,7 @@ public class UserService {
         checkPassword(userNum, requestDto.getPassword(), "비밀번호가 일치하지 않습니다.");
     }
 
-    public LoginResponseDto updateNickname(Integer userNum, NicknameRequestDto requestDto) {
+    public UserInfoResponseDto updateNickname(Integer userNum, NicknameRequestDto requestDto) {
 
         if (userMapper.updateNickname(userNum, requestDto.getNickname()) == 0) {
             throw new InvalidCredentialsException("사용자를 찾을 수 없습니다.");
@@ -187,7 +188,7 @@ public class UserService {
         }
     }
 
-    public LoginResponseDto getMyInfo(Integer userNum) {
+    public UserInfoResponseDto getMyInfo(Integer userNum) {
 
         User user = userMapper.findByUserNum(userNum);
 
@@ -195,11 +196,9 @@ public class UserService {
             throw new InvalidCredentialsException("사용자를 찾을 수 없습니다.");
         }
 
-        return new LoginResponseDto(
-            user.getUserNum(),
+        return new UserInfoResponseDto(
             user.getUserEmail(),
-            user.getUserNickname(),
-            null
+            user.getUserNickname()
         );
     }
 

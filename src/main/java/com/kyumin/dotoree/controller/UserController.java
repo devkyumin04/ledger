@@ -15,6 +15,7 @@ import com.kyumin.dotoree.dto.LoginRequestDto;
 import com.kyumin.dotoree.dto.LoginResponseDto;
 import com.kyumin.dotoree.dto.SignupRequestDto;
 import com.kyumin.dotoree.dto.SignupResponseDto;
+import com.kyumin.dotoree.dto.UserInfoResponseDto;
 import com.kyumin.dotoree.dto.PasswordConfirmRequestDto;
 import com.kyumin.dotoree.dto.NicknameRequestDto;
 import com.kyumin.dotoree.dto.PasswordChangeRequestDto;
@@ -46,8 +47,8 @@ public class UserController {
     }
     
     @GetMapping("/me")
-    public ResponseEntity<LoginResponseDto> getMyInfo(@AuthenticationPrincipal Integer userNum) {
-        LoginResponseDto responseDto = userService.getMyInfo(userNum);
+    public ResponseEntity<UserInfoResponseDto> getMyInfo(@AuthenticationPrincipal Integer userNum) {
+        UserInfoResponseDto responseDto = userService.getMyInfo(userNum);
         return ResponseEntity.status(HttpStatus.OK).body(responseDto);
     }
 
@@ -61,9 +62,9 @@ public class UserController {
 
     // 마이페이지 — 닉네임은 바뀐 내 정보를 돌려준다(화면이 다시 조회하지 않게), 비밀번호는 204
     @PutMapping("/me/nickname")
-    public ResponseEntity<LoginResponseDto> updateNickname(@AuthenticationPrincipal Integer userNum,
-                                                           @Valid @RequestBody NicknameRequestDto requestDto) {
-        LoginResponseDto responseDto = userService.updateNickname(userNum, requestDto);
+    public ResponseEntity<UserInfoResponseDto> updateNickname(@AuthenticationPrincipal Integer userNum,
+                                                              @Valid @RequestBody NicknameRequestDto requestDto) {
+        UserInfoResponseDto responseDto = userService.updateNickname(userNum, requestDto);
         return ResponseEntity.status(HttpStatus.OK).body(responseDto);
     }
 
