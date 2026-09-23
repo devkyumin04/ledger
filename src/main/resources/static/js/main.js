@@ -10,21 +10,26 @@ const loginNotice = document.getElementById('loginNotice');
 
 async function loadMyInfo() {
     try {
-        const data = await apiRequest('/api/users/me', 'GET');
+        const data = await apiRequest('/api/users/me', 'GET', null, { silentExpire: true });
         if (!data) return;
         welcomeMessage.textContent = data.nickname + '님, 환영합니다';
     } catch (error) {
+        if (error.expired) {
+            // 만료 토큰 — 메인은 공개 화면이라 로그인으로 튕기지 않고 비로그인 모습으로 (apiClient 가 토큰은 이미 지웠다)
+            showGuest();
+            return;
+        }
         console.error('내 정보 조회 실패', error);
     }
 }
 
-if (token) {
-    loginLink.hidden = true;
-    signupLink.hidden = true;
-    mypageLink.hidden = false;
-    logoutBtn.hidden = false;
-    loadMyInfo();
-} else {
+// 비로그인 모습 — 처음 온 사람, 그리고 토큰이 만료된 사람
+function showGuest() {
+    loginLink.hidden = false;
+    signupLink.hidden = false;
+    mypageLink.hidden = true;
+    logoutBtn.hidden = true;
+
     // 비로그인 상태에서 가계부·카테고리·통계로 가는 링크를 누르면 — 말없이 튕기지 않고 알린 뒤 로그인으로
     document.querySelectorAll('a[href^="/views/personal/"]').forEach(link => {
         link.addEventListener('click', (e) => {
@@ -36,6 +41,16 @@ if (token) {
             }, 1200);
         });
     });
+}
+
+if (token) {
+    loginLink.hidden = true;
+    signupLink.hidden = true;
+    mypageLink.hidden = false;
+    logoutBtn.hidden = false;
+    loadMyInfo();
+} else {
+    showGuest();
 }
 
 // 예시 화면의 막대 너비 — CSP 가 HTML 의 style 속성을 막으므로 JS 로 준다
