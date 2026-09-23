@@ -144,7 +144,7 @@ MySQL 커넥션을 새로 만들고 **두 탭을 나눠** 채운다 — SSH 탭�
 
 - **root 로는 못 붙는다** — `auth_socket` 이라 비번 자체를 받지 않는다 (ADR-043). 관리자 작업은 SSH 에서 `sudo mysql`
 - 확인 순서 — SSH 탭의 `Test tunnel configuration`(Connected) → 왼쪽 아래 `Test Connection`(8.4.11 표시)
-- **커넥션 이름은 `ledger_db(EC2)`, Connection type 은 Production** 으로. 탭이 빨개지고 DELETE·UPDATE 에 확인창이 뜬다.
+- **커넥션 이름은 `ledger_db(EC2)`, Connection type 은 Production** 으로(2026-09-23 화면에선 **Development 로 되어 있었다** — 커넥션 편집 → General → Connection type 에서 바꿀 것). 탭이 빨개지고 DELETE·UPDATE 에 확인창이 뜬다.
   로컬 `ledger_db` 와 헷갈려 운영 데이터를 지우는 사고를 막는 가장 싼 장치다
 - 집 IP 가 바뀌면 이 터널도 SSH 와 같이 타임아웃 난다 → 보안 그룹 22번 소스를 "내 IP" 로 다시
 - 이 방식은 나중에 서버가 늘거나 DB 를 밖으로 빼도 유지된다 — 사람은 터널·배스천을 거치고, 3306 은 앱 서버에만 연다
