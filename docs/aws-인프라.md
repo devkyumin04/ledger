@@ -176,6 +176,34 @@ MySQL 커넥션을 새로 만들고 **두 탭을 나눠** 채운다 — SSH 탭�
 - 앱 계정 비밀번호는 해시로만 저장돼 **다시 꺼내볼 수 없다.** 잃어버리면 `ALTER USER 'ledger_app'@'localhost' IDENTIFIED BY '새 값';` 로 재설정하고 systemd `EnvironmentFile` 도 같이 고친다
 - root 비번을 만들지 않은 이유는 ADR-043
 
+### 커밋 · push 할 때 — 체크리스트 (2026-09-25)
+
+**main 에 코드를 push 하면 곧 운영 배포다** — CI `build → qa → deploy`, 배포 중 약 10초 중단.
+문서만 바꾼 push(`docs/**`, `**.md`)는 CI 가 안 돌아 배포도 없다 (ci.yml `paths-ignore`)
+
+**커밋 전 (모든 커밋)**
+1. `git status` — 의도한 파일만 들어가는가. `docs/로컬환경.md` · pem · `.env` 가 없는가
+2. 비밀값·식별자가 없는가 — 설계-체크리스트 8번 (배포 관련 커밋이면 실측 필수)
+3. 기능 커밋이면 그 기능의 `qa/test-<기능>.sh` 가 로컬에서 통과했는가
+4. 코드와 문서를 같은 커밋에 — 스키마를 바꾸면 테이블설계.md(+노션), 새 결정은 ADR
+5. **새 `V` 파일이면** — 이미 적용된 V 파일은 절대 고치지 않았는가(ADR-045) / 옛 jar 로 롤백해도 도는가(ADR-053) / 바꾸는 테이블의 행 수를 로컬·운영에서 확인했는가
+
+**push 전 (코드가 들어간 push)**
+1. **DBeaver 의 EC2 연결을 끊는다** — 목록에서 `ledger_db(EC2)` 아이콘에 초록 체크가 없으면 끊긴 것. 열린 트랜잭션이 Flyway 의 `ALTER` 를 멈춰 새 앱이 안 뜬다(위 DBeaver "주의")
+2. **CI 가 끝날 때까지 운영 DB 를 조회하지 않는다** — 수동 커밋이라 SELECT 한 번이 트랜잭션을 연다
+3. 새 `V` 파일이 들어가면 — 오늘 백업이 성공했는가 (Healthchecks.io `ledger-backup` up)
+
+**push 후**
+1. GitHub Actions — `build` · `qa` · `deploy` 셋 다 초록. `qa` 는 원본 로그에서 케이스 수가 줄지 않았는지 (2026-09-25 기준 192)
+2. `https://dotoree.app/actuator/health` 가 UP (UptimeRobot DOWN 메일이 없는가)
+3. `V` 파일이 있었으면 — 운영 `flyway_schema_history` 에 새 버전 `success = 1` (위 "운영 DB 를 만질 때" 대로 조회 → Rollback → Disconnect)
+4. 바꾼 기능을 운영 화면에서 한 번 눌러 본다
+
+**잘못됐을 때**
+- `qa` 가 빨강 → 배포되지 않는다. 운영은 그대로이니 로컬에서 고쳐 다시 push
+- `deploy` 가 빨강이거나 health 가 DOWN → `systemctl status ledger`, `journalctl -u ledger -n 50` (위 "앱 서비스 조작")
+- 앱이 Flyway 단계에서 멈춘 것 같으면 → 열린 DB 연결부터 의심. DBeaver EC2 를 Disconnect 하면 기다리던 `ALTER` 가 이어서 진행된다
+
 ### 인스턴스 유형 변경 (small ↔ medium)
 
 1. 인스턴스 선택 → 인스턴스 상태 → **인스턴스 중지** ("종료(삭제)" 가 아님 — 종료는 디스크까지 지운다)
