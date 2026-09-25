@@ -146,8 +146,32 @@ MySQL 커넥션을 새로 만들고 **두 탭을 나눠** 채운다 — SSH 탭�
 - 확인 순서 — SSH 탭의 `Test tunnel configuration`(Connected) → 왼쪽 아래 `Test Connection`(8.4.11 표시)
 - **커넥션 이름은 `ledger_db(EC2)`, Connection type 은 Production** 으로(2026-09-23 화면에선 **Development 로 되어 있었다** — 커넥션 편집 → General → Connection type 에서 바꿀 것). 탭이 빨개지고 DELETE·UPDATE 에 확인창이 뜬다.
   로컬 `ledger_db` 와 헷갈려 운영 데이터를 지우는 사고를 막는 가장 싼 장치다
+- **읽기 전용 + 수동 커밋 — 안전 장치** (이전 세션에서 설정, 2026-09-25 화면으로 확인. 빨간 탭도 확인 = Production 반영됨)
+  - 설정 위치 — 커넥션 편집 → General → Security 의 `Read-only connection` / 툴바 트랜잭션 모드는 Manual commit(툴바 버튼이 `Switch to auto-commit` 으로 보이면 수동). 켜져 있으면 툴바에 주황 자물쇠 · `Commit`·`Rollback` 버튼 · 트랜잭션 카운터가 보인다
+  - 왜 — 운영 데이터는 실수로 바뀌면 되돌릴 길이 백업 복구뿐이다. **읽기 전용**이면 UPDATE·DELETE 를 아예 못 보내고, **수동 커밋**이면 쓰기가 필요해 자물쇠를 잠깐 풀었을 때도 `Commit` 전까지는 `Rollback` 으로 되돌릴 수 있다. 쓸 일이 있을 때만(예: 2026-09-23 확인용 계정 삭제) 자물쇠를 풀고, 끝나면 다시 잠근다
+  - **주의 — 조회만 해도 트랜잭션이 열린다.** 수동 커밋에선 SELECT 도 트랜잭션을 시작하고(카운터 `1`), 끝낼 때까지 그 테이블에 "사용 중" 표시(메타데이터 잠금)가 남는다 → 평소 앱의 조회·저장은 막히지 않지만, **배포 때 Flyway 의 `ALTER TABLE` 은 그 표시가 풀릴 때까지 기다려서 새 앱이 안 뜬다.** 기다리는 ALTER 뒤로 그 테이블의 일반 요청까지 줄을 서서 테이블이 통째로 멈춘다. **조회 뒤엔 `Rollback`(카운터 `None` 확인) 또는 Disconnect, 배포 전엔 EC2 커넥션을 끊어 둔다** (2026-09-25 V3 준비 중 발견)
 - 집 IP 가 바뀌면 이 터널도 SSH 와 같이 타임아웃 난다 → 보안 그룹 22번 소스를 "내 IP" 로 다시
 - 이 방식은 나중에 서버가 늘거나 DB 를 밖으로 빼도 유지된다 — 사람은 터널·배스천을 거치고, 3306 은 앱 서버에만 연다
+
+#### 운영 DB 를 만질 때 — 체크리스트 (2026-09-25)
+
+**조회만 할 때**
+1. 탭이 **빨간색**인지 본다 — 운영(`ledger_db(EC2)`)과 로컬을 헷갈리지 않게
+2. 툴바 **자물쇠가 잠겨 있는지**(주황) 본다 — 읽기 전용
+3. 조회가 끝나면 **`Rollback`** → 카운터가 **`None`** 인지 확인 (SELECT 도 트랜잭션을 연다)
+4. 다 봤으면 **Disconnect** — 연결 수(커넥션 풀) 때문이 아니다. 끊으면 MySQL 이 그 연결의 트랜잭션·잠금을 전부 정리하고(Rollback 을 잊었을 때의 마지막 안전망), SSH 터널도 같이 닫히고, 운영 탭에서 잘못 실행할 기회가 없어진다
+5. 결과를 문서·커밋에 옮길 땐 값을 가린다 — 실사용자 이메일·데이터, 서버 IP(DBeaver 왼쪽 목록에 보인다)
+
+**데이터를 바꿀 때 (UPDATE · DELETE)**
+1. **오늘 백업이 성공했는지** 먼저 본다 (Healthchecks.io `ledger-backup` up) — 되돌릴 마지막 수단
+2. 같은 `WHERE` 로 **SELECT 먼저** → 바뀔 행 수를 적어 둔다
+3. 자물쇠를 풀고 실행 → **영향받은 행 수가 2번과 같으면 `Commit`, 다르면 `Rollback`**
+4. 자물쇠를 다시 잠그고 Disconnect
+5. 이 문서 "작업 이력"에 한 줄
+
+**하지 않는 것**
+- **스키마 변경(`ALTER` · `CREATE` · `DROP`)을 DBeaver 로 직접 하지 않는다** — 반드시 Flyway `V` 파일로. 손으로 바꾸면 `flyway_schema_history` 와 실제 DB 가 어긋나고, 로컬·CI 에는 없는 변경이 운영에만 남는다
+- **배포 전엔 EC2 커넥션을 끊어 둔다** — 열린 트랜잭션이 Flyway 의 `ALTER` 를 멈춰 새 앱이 안 뜬다(위 "주의")
 
 - 앱 계정 비밀번호는 해시로만 저장돼 **다시 꺼내볼 수 없다.** 잃어버리면 `ALTER USER 'ledger_app'@'localhost' IDENTIFIED BY '새 값';` 로 재설정하고 systemd `EnvironmentFile` 도 같이 고친다
 - root 비번을 만들지 않은 이유는 ADR-043
@@ -335,3 +359,4 @@ sudo systemctl start ledger-certcheck.service                       # 지금 한
 | 2026-09-23 | Cloudflare Email Routing — `support@dotoree.app` → Gmail(목적지 인증 · 라우팅 규칙). 공개 DNS 로 MX·SPF·DKIM 추가 + SES DKIM·DMARC 유지 확인 | 직접 (AI 가 메뉴 위치 안내 · DNS 검사) |
 | 2026-09-23 | EC2 `/etc/nginx/sites-available/ledger.bak-certbot` 삭제 → `nginx -t` ok | 직접 |
 | 2026-09-23 | 운영 DB 확인용 계정 `test@test.com`(2-5 에서 만든 것) 하드 삭제 — 거래·카테고리·계정. 다른 계정에서 support@ 로 보낸 메일 Gmail 수신 확인 | 직접 (DBeaver `ledger_db(EC2)`) |
+| 2026-09-25 | DBeaver `ledger_db(EC2)` 안전 장치 기록 — 읽기 전용 + 수동 커밋(설정은 이전 세션) · Production(빨간 탭) 반영 확인. `SELECT COUNT(*) FROM refresh_tokens` 뒤 열린 트랜잭션을 Rollback → 카운터 `None` 확인 | 직접 (확인은 AI 가 DBeaver 화면으로) |
